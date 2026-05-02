@@ -1,0 +1,5 @@
+package com.example.mindflow_psychologist
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity : FlutterActivity()
