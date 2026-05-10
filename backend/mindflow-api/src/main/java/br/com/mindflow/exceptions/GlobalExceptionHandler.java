@@ -17,8 +17,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleApp(
             AppException ex) {
         return ResponseEntity
-            .status(ex.getStatus())
-            .body(Map.of("error", ex.getMessage()));
+                .status(ex.getStatus())
+                .body(Map.of("error", ex.getMessage()));
     }
 
     // Erros de validação (@Valid)
@@ -27,7 +27,7 @@ public class GlobalExceptionHandler {
             MethodArgumentNotValidException ex) {
         Map<String, String> erros = new HashMap<>();
         ex.getBindingResult().getFieldErrors()
-            .forEach(e -> erros.put(e.getField(), e.getDefaultMessage()));
+                .forEach(e -> erros.put(e.getField(), e.getDefaultMessage()));
         return ResponseEntity.badRequest().body(erros);
     }
 
@@ -36,6 +36,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleBadCredentials(
             BadCredentialsException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-            .body(Map.of("error", "Email ou senha incorretos"));
+                .body(Map.of("error", "Email ou senha incorretos"));
+    }
+
+    @ExceptionHandler(DadosPerfilAusentesException.class)
+    public ResponseEntity<Map<String, String>> handleDadosPerfil(
+            DadosPerfilAusentesException ex) {
+        return ResponseEntity
+                .badRequest()
+                .body(Map.of("error", ex.getMessage()));
     }
 }
