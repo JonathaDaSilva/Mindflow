@@ -1,16 +1,17 @@
 package br.com.mindflow.security;
 
-import java.util.Base64;
-import java.util.Date;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
 
-import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-import io.jsonwebtoken.io.Decoders;
-import io.jsonwebtoken.JwtException;
+import org.springframework.stereotype.Service;
+
 import javax.crypto.SecretKey;
+import java.util.Base64;
+import java.util.Date;
 
 @Service
 public class JwtService {
@@ -21,7 +22,6 @@ public class JwtService {
     @Value("${jwt.expiration}")
     private Long expiration;
 
-    // Gera a chave de assinatura a partir do secret do yml
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(
             Decoders.BASE64.decode(
@@ -30,11 +30,10 @@ public class JwtService {
         );
     }
 
-    // Gera o token com o email do usuário como subject
     public String gerarToken(UserDetails usuario) {
         return Jwts.builder()
-            .subject(usuario.getUsername())   // email
-            .claim("perfil", usuario           // perfil no payload
+            .subject(usuario.getUsername())  
+            .claim("perfil", usuario          
                 .getAuthorities().iterator()
                 .next().getAuthority())
             .issuedAt(new Date())
@@ -44,7 +43,6 @@ public class JwtService {
             .compact();
     }
 
-    // Extrai o email (subject) do token
     public String extrairEmail(String token) {
         return Jwts.parser()
             .verifyWith(getSigningKey())
@@ -54,14 +52,13 @@ public class JwtService {
             .getSubject();
     }
 
-    // Valida: assinatura correta + não expirado + email bate
     public boolean tokenValido(String token, UserDetails usuario) {
         try {
             String email = extrairEmail(token);
             return email.equals(usuario.getUsername())
                 && !tokenExpirado(token);
         } catch (JwtException e) {
-            return false;  // token inválido ou adulterado
+            return false;  
         }
     }
 

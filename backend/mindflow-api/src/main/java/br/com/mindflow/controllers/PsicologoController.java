@@ -7,15 +7,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import br.com.mindflow.entity.Usuario;
-import br.com.mindflow.repositories.UsuarioRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import java.util.List;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import br.com.mindflow.dto.PsicologoPerfilRequest;
-import br.com.mindflow.dto.PsicologoPerfilResponse;
+import br.com.mindflow.dto.psicologo.*;
 import br.com.mindflow.services.PsicologoService;
 
 @RestController
@@ -25,32 +20,21 @@ public class PsicologoController {
 
     private final PsicologoService psicologoService;
 
-    // Paciente lista todos os psicólogos disponíveis
+    // GET /psicologos — paciente lista psicólogos disponíveis
     @GetMapping
     public List<PsicologoPerfilResponse> listar() {
         return psicologoService.listarTodos();
     }
 
-    // Psicólogo cria seu perfil após o cadastro
-    @PostMapping("/perfil")
-    @ResponseStatus(HttpStatus.CREATED)
-    public PsicologoPerfilResponse criarPerfil(
-            @AuthenticationPrincipal Usuario usuario,
-            @RequestBody @Valid PsicologoPerfilRequest req) {
-        return psicologoService.criarPerfil(usuario.getId(), req);
-    }
-
-    // Psicólogo busca/edita seu próprio perfil
+    // GET /psicologos/perfil — psicólogo lê seu próprio perfil
     @GetMapping("/perfil")
-    public PsicologoPerfilResponse meuPerfil(
-            @AuthenticationPrincipal Usuario usuario) {
+    public PsicologoPerfilResponse meuPerfil(@AuthenticationPrincipal Usuario usuario) {
         return psicologoService.buscarPorUsuario(usuario.getId());
     }
 
+    // PUT /psicologos/perfil — psicólogo atualiza seu perfil
     @PutMapping("/perfil")
-    public PsicologoPerfilResponse atualizar(
-            @AuthenticationPrincipal Usuario usuario,
-            @RequestBody @Valid PsicologoPerfilRequest req) {
+    public PsicologoPerfilResponse atualizar(@AuthenticationPrincipal Usuario usuario, @RequestBody @Valid PsicologoPerfilRequest req) {
         return psicologoService.atualizar(usuario.getId(), req);
     }
 }

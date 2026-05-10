@@ -19,18 +19,13 @@ public class UsuarioController {
 
     private final UsuarioRepository usuarioRepo;
 
-    // Retorna o usuário logado — @AuthenticationPrincipal
-    // injeta o Usuario direto do token, sem query extra
     @GetMapping("/me")
-    public UsuarioResponse me(
-            @AuthenticationPrincipal Usuario usuario) {
+    public UsuarioResponse me(@AuthenticationPrincipal Usuario usuario) {
         return UsuarioResponse.from(usuario);
     }
 
     @PutMapping("/me")
-    public UsuarioResponse atualizar(
-            @AuthenticationPrincipal Usuario usuario,
-            @RequestBody @Valid AtualizarUsuarioRequest req) {
+    public UsuarioResponse atualizar(@AuthenticationPrincipal Usuario usuario, @RequestBody @Valid AtualizarUsuarioRequest req) {
         usuario.setNome(req.nome());
         return UsuarioResponse.from(usuarioRepo.save(usuario));
     }

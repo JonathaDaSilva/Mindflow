@@ -7,8 +7,15 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record RegisterRequest(
-    @NotBlank String nome,
-    @Email @NotBlank String email,
-    @NotBlank @Size(min = 6) String senha,
-    @NotNull PerfilUsuario perfil
+
+    @NotBlank
+    String nome,
+    @Email @NotBlank
+    String email,
+    @NotBlank @Size(min = 6)
+    String senha,
+    @NotNull
+    PerfilUsuario perfil,
+    DadosPacienteRequest dadosPaciente,
+    DadosPsicologoRequest dadosPsicologo
 ) {}
