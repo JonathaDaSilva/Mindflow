@@ -5,7 +5,6 @@ public enum StatusConsulta {
     EM_ANDAMENTO(2),
     CONCLUIDA(3),
     CANCELADA(4),
-    REAGENDADA(5),
     NAO_COMPARECEU(6),
     COMFIRMADA(7);
 

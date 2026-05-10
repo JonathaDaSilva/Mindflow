@@ -14,7 +14,7 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
 jwt:
-  secret: mindflow-secret-key-deve-ter-32-chars-minimo-2026
+  secret: bee782a65b499088971509f1685d8de08ed59e017d19acc69136a2fee56a2766
   expiration: 86400000        
 
 server:
