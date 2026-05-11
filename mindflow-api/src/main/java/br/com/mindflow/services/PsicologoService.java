@@ -3,9 +3,9 @@ package br.com.mindflow.services;
 import br.com.mindflow.entity.Endereco;
 import br.com.mindflow.exceptions.PerfilNaoEncontradoException;
 import br.com.mindflow.repositories.PsicologoPerfilRepository;
+import br.com.mindflow.repositories.UsuarioRepository;
 import jakarta.transaction.Transactional;
 import br.com.mindflow.dto.psicologo.*;
-
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Service;
 public class PsicologoService {
 
     private final PsicologoPerfilRepository perfilRepo;
-
+    private final UsuarioRepository usuarioRepository;
     // Paciente lista psicólogos disponíveis
     public List<PsicologoPerfilResponse> listarTodos() {
         return perfilRepo.findByAtivoTrue()
@@ -69,5 +69,6 @@ public class PsicologoService {
         var perfil = perfilRepo.findByUsuarioId(usuarioId)
             .orElseThrow(PerfilNaoEncontradoException::new);
         perfilRepo.delete(perfil);
+        usuarioRepository.deleteById(usuarioId);
     }
 }

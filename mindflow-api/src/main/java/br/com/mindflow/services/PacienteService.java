@@ -4,6 +4,7 @@ import br.com.mindflow.dto.paciente.PacientePerfilRequest;
 import br.com.mindflow.dto.paciente.PacientePerfilResponse;
 import br.com.mindflow.exceptions.PerfilNaoEncontradoException;
 import br.com.mindflow.repositories.PacientePerfilRepository;
+import br.com.mindflow.repositories.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +15,7 @@ import java.util.UUID;
 public class PacienteService {
 
     private final PacientePerfilRepository pacienteRepo;
+    private final UsuarioRepository usuarioRepository;
 
     // Paciente lê seu próprio perfil (com observacoesSaude)
     public PacientePerfilResponse buscarMeuPerfil(UUID usuarioId) {
@@ -50,5 +52,6 @@ public class PacienteService {
         var perfil = pacienteRepo.findByUsuarioId(usuarioId)
             .orElseThrow(PerfilNaoEncontradoException::new);
         pacienteRepo.delete(perfil);
+        usuarioRepository.deleteById(usuarioId);
     }
 }
