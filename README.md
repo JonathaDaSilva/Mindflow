@@ -30,7 +30,7 @@ mindflow/
 ├── docs/
 │   ├── proposta.md        # Proposta de domínio
 │   ├── requisitos.md      # Requisitos funcionais e não funcionais
-│   └── arquitetura.md     # Documento de arquitetura
+│   └── arquitetura        # Arquitetura sistema
 ├── postman/
 │   └── mindflow.json      # Coleção de testes Postman
 ├── compose.yml            # Podman — PostgreSQL + RabbitMQ
