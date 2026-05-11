@@ -12,6 +12,9 @@ import lombok.RequiredArgsConstructor;
 import java.util.List;
 import br.com.mindflow.dto.psicologo.*;
 import br.com.mindflow.services.PsicologoService;
+import java.util.UUID;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 
 @RestController
 @RequestMapping("/psicologos")
@@ -36,5 +39,10 @@ public class PsicologoController {
     @PutMapping("/perfil")
     public PsicologoPerfilResponse atualizar(@AuthenticationPrincipal Usuario usuario, @RequestBody @Valid PsicologoPerfilRequest req) {
         return psicologoService.atualizar(usuario.getId(), req);
+    }
+
+    @DeleteMapping("/delete/{usuarioId}")
+    public void deletar(@PathVariable UUID usuarioId) {
+        psicologoService.deletar(usuarioId);
     }
 }

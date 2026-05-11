@@ -63,4 +63,11 @@ public class PsicologoService {
 
         return PsicologoPerfilResponse.from(perfilRepo.save(perfil));
     }
+
+    @Transactional
+    public void deletar(UUID usuarioId) {
+        var perfil = perfilRepo.findByUsuarioId(usuarioId)
+            .orElseThrow(PerfilNaoEncontradoException::new);
+        perfilRepo.delete(perfil);
+    }
 }

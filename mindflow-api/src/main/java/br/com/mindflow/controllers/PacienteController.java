@@ -14,6 +14,7 @@ import br.com.mindflow.services.PacienteService;
 import br.com.mindflow.entity.Usuario;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
 
 @RestController
 @RequestMapping("/pacientes")
@@ -39,5 +40,10 @@ public class PacienteController {
     @PreAuthorize("hasRole('PSICOLOGO')")
     public PacientePerfilResponse perfilPublico(@PathVariable UUID usuarioId) {
         return pacienteService.buscarPerfilPublico(usuarioId);
+    }
+
+    @DeleteMapping("/delete/{usuarioId}")
+    public void deletar(@PathVariable UUID usuarioId) {
+        pacienteService.deletar(usuarioId);
     }
 }

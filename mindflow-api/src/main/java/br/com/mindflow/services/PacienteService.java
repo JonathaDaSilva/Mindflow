@@ -44,4 +44,11 @@ public class PacienteService {
 
         return PacientePerfilResponse.from(pacienteRepo.save(perfil));
     }
+
+    @Transactional
+    public void deletar(UUID usuarioId) {
+        var perfil = pacienteRepo.findByUsuarioId(usuarioId)
+            .orElseThrow(PerfilNaoEncontradoException::new);
+        pacienteRepo.delete(perfil);
+    }
 }
