@@ -22,7 +22,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "psicologoPerfis")
+@Table(name = "psicologo_perfis")
 @Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor
 public class PsicologoPerfil {
     @Id

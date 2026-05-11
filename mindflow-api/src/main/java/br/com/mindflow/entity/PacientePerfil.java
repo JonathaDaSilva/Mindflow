@@ -31,11 +31,9 @@ public class PacientePerfil {
 
     private LocalDate dataNascimento;
 
-    // preferência registrada — plataforma não processa pagamento
     @Enumerated(EnumType.STRING)
     private FormaPagamento formaPagamentoPref;
-
-    // campo sensível LGPD — nunca retornar em listagens gerais
+    
     @Column(name = "observacoes_saude", length = 1000)
     private String observacoesSaude;
 

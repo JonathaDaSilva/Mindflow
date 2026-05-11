@@ -12,7 +12,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
@@ -20,14 +20,12 @@ public class AuthController {
 
     @PostMapping("/registrar")
     @ResponseStatus(HttpStatus.CREATED)
-    public AuthResponse registrar(
-            @RequestBody @Valid RegisterRequest req) {
+    public AuthResponse registrar(@RequestBody @Valid RegisterRequest req) {
         return authService.registrar(req);
     }
 
     @PostMapping("/login")
-    public AuthResponse login(
-            @RequestBody @Valid LoginRequest req) {
+    public AuthResponse login(@RequestBody @Valid LoginRequest req) {
         return authService.login(req);
     }
 }

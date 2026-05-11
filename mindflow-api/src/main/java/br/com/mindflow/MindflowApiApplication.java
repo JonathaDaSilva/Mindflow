@@ -9,5 +9,4 @@ public class MindflowApiApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(MindflowApiApplication.class, args);
 	}
-
 }
