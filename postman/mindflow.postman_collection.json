@@ -2,258 +2,137 @@
   "info": {
     "_postman_id": "e94ca80a-0946-4740-b8f7-9acdcceebd6f",
     "name": "MindFlow API",
-    "description": "Coleção de testes para o backend REST do MindFlow. Disciplina LDAMD — PUC Minas 2026/1.\n\nComo usar:\n1. Suba a infraestrutura: `podman compose up -d`\n2. Rode o backend: `mvn spring-boot:run`\n3. Execute 'Registrar Paciente' ou 'Registrar Psicólogo'\n4. O token JWT é salvo automaticamente na variável `{{token}}`\n5. Todas as demais requisições usam o token automaticamente",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "35576841"
+    "description": "Coleção completa e corrigida do MindFlow.\n\nORDEM DE EXECUÇÃO:\n1. Auth → Registrar Psicólogo  (salva token + psicologoUsuarioId)\n2. Auth → Registrar Paciente   (salva token + pacienteUsuarioId)\n3. Auth → Login Psicólogo      (troca token para o psicólogo)\n4. Disponibilidade → PUT       (psicólogo cadastra agenda)\n5. Disponibilidade → GET slots (qualquer token, use psicologoUsuarioId na URL)\n6. Auth → Login Paciente       (troca token para o paciente)\n7. Consulta → POST             (paciente agenda)\n8. Auth → Login Psicólogo      (troca token)\n9. Consulta → GET pendentes    (psicólogo vê solicitações)\n10. Consulta → PATCH status    (psicólogo confirma)\n11. Consulta → PATCH cancelar  (testa regra 24h)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "variable": [
+    { "key": "baseUrl",            "value": "http://localhost:8080", "type": "string" },
+    { "key": "token",              "value": "", "type": "string" },
+    { "key": "tokenPsicologo",     "value": "", "type": "string" },
+    { "key": "tokenPaciente",      "value": "", "type": "string" },
+    { "key": "psicologoUsuarioId", "value": "", "type": "string" },
+    { "key": "pacienteUsuarioId",  "value": "", "type": "string" },
+    { "key": "consultaId",         "value": "", "type": "string" }
+  ],
   "item": [
     {
       "name": "Auth",
       "item": [
         {
-          "name": "Registrar Paciente",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const res = pm.response.json();",
-                  "pm.collectionVariables.set('token', res.token);",
-                  "pm.collectionVariables.set('pacienteUsuarioId', res.userId);",
-                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
-                  "pm.test('Token retornado', () => pm.expect(res.token).to.be.a('string'));",
-                  "pm.test('Perfil é PACIENTE', () => pm.expect(res.perfil).to.eql('PACIENTE'));"
-                ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nome\": \"João Silva\",\n  \"email\": \"joao@email.com\",\n  \"senha\": \"123456\",\n  \"perfil\": \"PACIENTE\",\n  \"dadosPaciente\": {\n    \"telefone\": \"(31) 99999-0000\",\n    \"dataNascimento\": \"1995-06-15\",\n    \"formaPagamentoPref\": \"PIX\",\n    \"observacoesSaude\": \"Ansiedade leve\"\n  }\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/auth/registrar",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "registrar"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
           "name": "Registrar Psicólogo",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const res = pm.response.json();",
-                  "pm.collectionVariables.set('token', res.token);",
-                  "pm.collectionVariables.set('psicologoUsuarioId', res.userId);",
-                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
-                  "pm.test('Token retornado', () => pm.expect(res.token).to.be.a('string'));",
-                  "pm.test('Perfil é PSICOLOGO', () => pm.expect(res.perfil).to.eql('PSICOLOGO'));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const res = pm.response.json();",
+            "pm.collectionVariables.set('tokenPsicologo', res.token);",
+            "pm.collectionVariables.set('token', res.token);",
+            "pm.collectionVariables.set('psicologoUsuarioId', res.userId);",
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "pm.test('Token retornado', () => pm.expect(res.token).to.be.a('string'));",
+            "pm.test('Perfil é PSICOLOGO', () => pm.expect(res.perfil).to.eql('PSICOLOGO'));"
+          ]}}],
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nome\": \"Dra. Ana Lima\",\n  \"email\": \"ana@email.com\",\n  \"senha\": \"123456\",\n  \"perfil\": \"PSICOLOGO\",\n  \"dadosPsicologo\": {\n    \"crp\": \"06/12345\",\n    \"especialidade\": \"Ansiedade e Depressão\",\n    \"bio\": \"10 anos de experiência em saúde mental\",\n    \"regimeTrabalho\": \"HIBRIDO\",\n    \"duracaoSessaoMin\": 50,\n    \"valorSessao\": 180.00,\n    \"aceitaEmergencia\": true,\n    \"endereco\": {\n      \"logradouro\": \"Rua das Flores\",\n      \"numero\": \"123\",\n      \"bairro\": \"Centro\",\n      \"cidade\": \"Belo Horizonte\",\n      \"estado\": \"MG\",\n      \"cep\": \"30130-110\"\n    }\n  }\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/auth/registrar",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "registrar"
-              ]
-            }
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Dra. Ana Lima\",\n  \"email\": \"ana@email.com\",\n  \"senha\": \"123456\",\n  \"perfil\": \"PSICOLOGO\",\n  \"dadosPsicologo\": {\n    \"crp\": \"06/12345\",\n    \"especialidade\": \"Ansiedade e Depressão\",\n    \"bio\": \"10 anos de experiência em saúde mental\",\n    \"regimeTrabalho\": \"HIBRIDO\",\n    \"duracaoSessaoMin\": 50,\n    \"valorSessao\": 180.00,\n    \"aceitaEmergencia\": true,\n    \"endereco\": {\n      \"logradouro\": \"Rua das Flores\",\n      \"numero\": \"123\",\n      \"bairro\": \"Centro\",\n      \"cidade\": \"Belo Horizonte\",\n      \"estado\": \"MG\",\n      \"cep\": \"30130-110\"\n    }\n  }\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/registrar", "host": ["{{baseUrl}}"], "path": ["auth","registrar"] }
           },
           "response": []
         },
         {
-          "name": "Login",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const res = pm.response.json();",
-                  "pm.collectionVariables.set('token', res.token);",
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Token retornado', () => pm.expect(res.token).to.be.a('string'));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
+          "name": "Registrar Paciente",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const res = pm.response.json();",
+            "pm.collectionVariables.set('tokenPaciente', res.token);",
+            "pm.collectionVariables.set('pacienteUsuarioId', res.userId);",
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "pm.test('Token retornado', () => pm.expect(res.token).to.be.a('string'));",
+            "pm.test('Perfil é PACIENTE', () => pm.expect(res.perfil).to.eql('PACIENTE'));"
+          ]}}],
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"ana@email.com\",\n  \"senha\": \"123456\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "login"
-              ]
-            }
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"João Silva\",\n  \"email\": \"joao@email.com\",\n  \"senha\": \"123456\",\n  \"perfil\": \"PACIENTE\",\n  \"dadosPaciente\": {\n    \"telefone\": \"(31) 99999-0000\",\n    \"dataNascimento\": \"1995-06-15\",\n    \"formaPagamentoPref\": \"PIX\",\n    \"observacoesSaude\": \"Ansiedade leve\"\n  }\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/registrar", "host": ["{{baseUrl}}"], "path": ["auth","registrar"] }
           },
           "response": []
         },
         {
-          "name": "[ERRO] Login com senha errada",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
-                  "pm.test('Mensagem de erro', () => pm.expect(pm.response.json().error).to.include('incorretos'));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
+          "name": "Login Psicólogo",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const res = pm.response.json();",
+            "pm.collectionVariables.set('tokenPsicologo', res.token);",
+            "pm.collectionVariables.set('token', res.token);",
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Token retornado', () => pm.expect(res.token).to.be.a('string'));"
+          ]}}],
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"ana@email.com\",\n  \"senha\": \"senhaerrada\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "login"
-              ]
-            }
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"ana@email.com\",\n  \"senha\": \"123456\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth","login"] }
           },
           "response": []
         },
         {
-          "name": "[ERRO] Registrar com e-mail duplicado",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 409', () => pm.response.to.have.status(409));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
+          "name": "Login Paciente",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const res = pm.response.json();",
+            "pm.collectionVariables.set('tokenPaciente', res.token);",
+            "pm.collectionVariables.set('token', res.token);",
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Token retornado', () => pm.expect(res.token).to.be.a('string'));"
+          ]}}],
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nome\": \"Outro João\",\n  \"email\": \"joao@email.com\",\n  \"senha\": \"123456\",\n  \"perfil\": \"PACIENTE\",\n  \"dadosPaciente\": {\n    \"telefone\": \"(31) 88888-0000\"\n  }\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/auth/registrar",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "registrar"
-              ]
-            }
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"joao@email.com\",\n  \"senha\": \"123456\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth","login"] }
           },
           "response": []
         },
         {
-          "name": "[ERRO] Registrar paciente sem dadosPaciente",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
+          "name": "[ERRO] Login senha errada",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 401', () => pm.response.to.have.status(401));",
+            "pm.test('Mensagem de erro', () => pm.expect(pm.response.json().error).to.include('incorretos'));"
+          ]}}],
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nome\": \"Maria\",\n  \"email\": \"maria@email.com\",\n  \"senha\": \"123456\",\n  \"perfil\": \"PACIENTE\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/auth/registrar",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "registrar"
-              ]
-            }
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"ana@email.com\",\n  \"senha\": \"senhaerrada\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth","login"] }
+          },
+          "response": []
+        },
+        {
+          "name": "[ERRO] E-mail duplicado",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 409', () => pm.response.to.have.status(409));"
+          ]}}],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Outro João\",\n  \"email\": \"joao@email.com\",\n  \"senha\": \"123456\",\n  \"perfil\": \"PACIENTE\",\n  \"dadosPaciente\": { \"telefone\": \"(31) 88888-0000\" }\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/registrar", "host": ["{{baseUrl}}"], "path": ["auth","registrar"] }
+          },
+          "response": []
+        },
+        {
+          "name": "[ERRO] Registrar sem dadosPaciente",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 400', () => pm.response.to.have.status(400));"
+          ]}}],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Maria\",\n  \"email\": \"maria@email.com\",\n  \"senha\": \"123456\",\n  \"perfil\": \"PACIENTE\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/registrar", "host": ["{{baseUrl}}"], "path": ["auth","registrar"] }
           },
           "response": []
         }
@@ -264,110 +143,45 @@
       "item": [
         {
           "name": "GET /usuarios/me",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const res = pm.response.json();",
-                  "pm.test('Retorna id', () => pm.expect(res.id).to.be.a('string'));",
-                  "pm.test('Retorna email', () => pm.expect(res.email).to.be.a('string'));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "const res = pm.response.json();",
+            "pm.test('Retorna id', () => pm.expect(res.id).to.be.a('string'));",
+            "pm.test('Retorna email', () => pm.expect(res.email).to.be.a('string'));"
+          ]}}],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/usuarios/me",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "usuarios",
-                "me"
-              ]
-            }
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/usuarios/me", "host": ["{{baseUrl}}"], "path": ["usuarios","me"] }
           },
           "response": []
         },
         {
           "name": "PUT /usuarios/me",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Nome atualizado', () => pm.expect(pm.response.json().nome).to.eql('Ana Lima Atualizada'));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Nome atualizado', () => pm.expect(pm.response.json().nome).to.eql('Ana Lima Atualizada'));"
+          ]}}],
           "request": {
             "method": "PUT",
             "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nome\": \"Ana Lima Atualizada\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/usuarios/me",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "usuarios",
-                "me"
-              ]
-            }
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Ana Lima Atualizada\"\n}" },
+            "url": { "raw": "{{baseUrl}}/usuarios/me", "host": ["{{baseUrl}}"], "path": ["usuarios","me"] }
           },
           "response": []
         },
         {
           "name": "[ERRO] GET /usuarios/me sem token",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 401 ou 403', () => pm.expect(pm.response.code).to.be.oneOf([401,403]));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 401 ou 403', () => pm.expect(pm.response.code).to.be.oneOf([401,403]));"
+          ]}}],
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/usuarios/me",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "usuarios",
-                "me"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/usuarios/me", "host": ["{{baseUrl}}"], "path": ["usuarios","me"] }
           },
           "response": []
         }
@@ -378,102 +192,44 @@
       "item": [
         {
           "name": "GET /pacientes/perfil",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const res = pm.response.json();",
-                  "pm.test('Retorna observacoesSaude (próprio paciente)', () => pm.expect(res).to.have.property('observacoesSaude'));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "const res = pm.response.json();",
+            "pm.test('Retorna observacoesSaude', () => pm.expect(res).to.have.property('observacoesSaude'));"
+          ]}}],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/pacientes/perfil",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "pacientes",
-                "perfil"
-              ]
-            }
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenPaciente}}" }],
+            "url": { "raw": "{{baseUrl}}/pacientes/perfil", "host": ["{{baseUrl}}"], "path": ["pacientes","perfil"] }
           },
           "response": []
         },
         {
           "name": "PUT /pacientes/perfil",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Telefone atualizado', () => pm.expect(pm.response.json().telefone).to.eql('(31) 98888-1111'));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Telefone atualizado', () => pm.expect(pm.response.json().telefone).to.eql('(31) 98888-1111'));"
+          ]}}],
           "request": {
             "method": "PUT",
             "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Authorization", "value": "Bearer {{tokenPaciente}}" },
+              { "key": "Content-Type", "value": "application/json" }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"telefone\": \"(31) 98888-1111\",\n  \"dataNascimento\": \"1995-06-15\",\n  \"formaPagamentoPref\": \"CARTAO_CREDITO\",\n  \"observacoesSaude\": \"Ansiedade moderada\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/pacientes/perfil",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "pacientes",
-                "perfil"
-              ]
-            }
+            "body": { "mode": "raw", "raw": "{\n  \"telefone\": \"(31) 98888-1111\",\n  \"dataNascimento\": \"1995-06-15\",\n  \"formaPagamentoPref\": \"CARTAO_CREDITO\",\n  \"observacoesSaude\": \"Ansiedade moderada\"\n}" },
+            "url": { "raw": "{{baseUrl}}/pacientes/perfil", "host": ["{{baseUrl}}"], "path": ["pacientes","perfil"] }
           },
           "response": []
         },
         {
-          "name": "DELETE /pacientes/{id}",
+          "name": "DELETE /pacientes/perfil",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 204', () => pm.response.to.have.status(204));"
+          ]}}],
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
             "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/pacientes/delete/",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "pacientes",
-                "delete",
-                ""
-              ]
-            }
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenPaciente}}" }],
+            "url": { "raw": "{{baseUrl}}/pacientes/delete/{{pacienteUsuarioId}}", "host": ["{{baseUrl}}"], "path": ["pacientes","delete","{{pacienteUsuarioId}}"] }
           },
           "response": []
         }
@@ -484,168 +240,290 @@
       "item": [
         {
           "name": "GET /psicologos",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Retorna array', () => pm.expect(pm.response.json()).to.be.an('array'));"
-                ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
-              }
-            }
-          ],
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Retorna array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+          ]}}],
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhbmFAZW1haWwuY29tIiwicGVyZmlsIjoiUk9MRV9QU0lDT0xPR08iLCJpYXQiOjE3Nzg1MTA1NzAsImV4cCI6MTc3ODU5Njk3MH0.-jbHPRSgiyxAZdn4M3U9ze50KeVUTfjAg_Iuv96v6Myd7GuLZKevzqs2XHO6rVktrt1qbK0mG81JjUHniRoXDg",
-                  "type": "string"
-                }
-              ]
-            },
             "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/psicologos",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "psicologos"
-              ]
-            }
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/psicologos", "host": ["{{baseUrl}}"], "path": ["psicologos"] }
           },
           "response": []
         },
         {
           "name": "GET /psicologos/perfil",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const res = pm.response.json();",
-                  "pm.test('Tem CRP', () => pm.expect(res.crp).to.be.a('string'));",
-                  "pm.test('Tem regimeTrabalho', () => pm.expect(res.regimeTrabalho).to.be.a('string'));"
-                ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
-              }
-            }
-          ],
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "const res = pm.response.json();",
+            "pm.test('Tem CRP', () => pm.expect(res.crp).to.be.a('string'));",
+            "pm.test('Tem regimeTrabalho', () => pm.expect(res.regimeTrabalho).to.be.a('string'));"
+          ]}}],
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhbmFAZW1haWwuY29tIiwicGVyZmlsIjoiUk9MRV9QU0lDT0xPR08iLCJpYXQiOjE3Nzg1MTA3OTgsImV4cCI6MTc3ODU5NzE5OH0.a1o7uhv3tm8szIANUjlj088ze-Bpj6Vma86y5INpZUmac_zCo7q8y2JMWc9W7HzJd0B-DJizofUgkq1gQ2amrg",
-                  "type": "string"
-                }
-              ]
-            },
             "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/psicologos/perfil",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "psicologos",
-                "perfil"
-              ]
-            }
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenPsicologo}}" }],
+            "url": { "raw": "{{baseUrl}}/psicologos/perfil", "host": ["{{baseUrl}}"], "path": ["psicologos","perfil"] }
           },
           "response": []
         },
         {
           "name": "PUT /psicologos/perfil",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Valor atualizado', () => pm.expect(pm.response.json().valorSessao).to.eql(200));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Valor atualizado', () => pm.expect(pm.response.json().valorSessao).to.eql(200));"
+          ]}}],
           "request": {
             "method": "PUT",
             "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Authorization", "value": "Bearer {{tokenPsicologo}}" },
+              { "key": "Content-Type", "value": "application/json" }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"crp\": \"06/12345\",\n  \"especialidade\": \"Ansiedade e Depressão\",\n  \"bio\": \"10 anos de experiência — atualizado\",\n  \"regimeTrabalho\": \"REMOTO\",\n  \"duracaoSessaoMin\": 50,\n  \"valorSessao\": 200.00,\n  \"aceitaEmergencia\": true\n}"
-            },
+            "body": { "mode": "raw", "raw": "{\n  \"crp\": \"06/12345\",\n  \"especialidade\": \"Ansiedade e Depressão\",\n  \"bio\": \"10 anos de experiência — atualizado\",\n  \"regimeTrabalho\": \"REMOTO\",\n  \"duracaoSessaoMin\": 50,\n  \"valorSessao\": 200.00,\n  \"aceitaEmergencia\": true\n}" },
+            "url": { "raw": "{{baseUrl}}/psicologos/perfil", "host": ["{{baseUrl}}"], "path": ["psicologos","perfil"] }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /psicologos/perfil",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 204', () => pm.response.to.have.status(204));"
+          ]}}],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenPsicologo}}" }],
+            "url": { "raw": "{{baseUrl}}/psicologos/delete/{{psicologoUsuarioId}}", "host": ["{{baseUrl}}"], "path": ["psicologos","delete","{{psicologoUsuarioId}}"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Disponibilidade",
+      "item": [
+        {
+          "name": "PUT /disponibilidades — Psicólogo cadastra agenda",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Retorna array', () => pm.expect(pm.response.json()).to.be.an('array'));",
+            "pm.test('Tem diaSemanaLabel', () => pm.expect(pm.response.json()[0]).to.have.property('diaSemanaLabel'));"
+          ]}}],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{tokenPsicologo}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"disponibilidades\": [\n    { \"diaSemana\": 1, \"horaInicio\": \"08:00\", \"horaFim\": \"12:00\" },\n    { \"diaSemana\": 1, \"horaInicio\": \"14:00\", \"horaFim\": \"18:00\" },\n    { \"diaSemana\": 3, \"horaInicio\": \"09:00\", \"horaFim\": \"12:00\" },\n    { \"diaSemana\": 5, \"horaInicio\": \"14:00\", \"horaFim\": \"17:00\" }\n  ]\n}" },
+            "url": { "raw": "{{baseUrl}}/disponibilidades", "host": ["{{baseUrl}}"], "path": ["disponibilidades"] }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /disponibilidades — Psicólogo vê sua agenda",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Retorna array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenPsicologo}}" }],
+            "url": { "raw": "{{baseUrl}}/disponibilidades", "host": ["{{baseUrl}}"], "path": ["disponibilidades"] }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /disponibilidades/{psicologoId}/slots — Paciente busca horários livres",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Retorna array de slots', () => pm.expect(pm.response.json()).to.be.an('array'));",
+            "if (pm.response.json().length > 0) {",
+            "  pm.test('Slot tem dataHora', () => pm.expect(pm.response.json()[0]).to.have.property('dataHora'));",
+            "  pm.test('Slot tem horaFormatada', () => pm.expect(pm.response.json()[0]).to.have.property('horaFormatada'));",
+            "}"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenPaciente}}" }],
             "url": {
-              "raw": "{{baseUrl}}/psicologos/perfil",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "psicologos",
-                "perfil"
-              ]
+              "raw": "{{baseUrl}}/disponibilidades/{{psicologoUsuarioId}}/slots?data=2026-06-08",
+              "host": ["{{baseUrl}}"],
+              "path": ["disponibilidades","{{psicologoUsuarioId}}","slots"],
+              "query": [{ "key": "data", "value": "2026-06-08" }]
             }
           },
           "response": []
         },
         {
-          "name": "DELETE /psicologos/{id)",
+          "name": "[ERRO] Slots em dia sem disponibilidade",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Array vazio — sem disponibilidade no domingo', () => pm.expect(pm.response.json()).to.be.an('array').that.is.empty);"
+          ]}}],
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhbmFAZW1haWwuY29tIiwicGVyZmlsIjoiUk9MRV9QU0lDT0xPR08iLCJpYXQiOjE3Nzg1MTA3OTgsImV4cCI6MTc3ODU5NzE5OH0.a1o7uhv3tm8szIANUjlj088ze-Bpj6Vma86y5INpZUmac_zCo7q8y2JMWc9W7HzJd0B-DJizofUgkq1gQ2amrg",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "DELETE",
-            "header": [],
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenPaciente}}" }],
             "url": {
-              "raw": "{{baseUrl}}/psicologos/delete/e3e2a6fb-8b26-4b72-b5d4-be5918a2282d",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "psicologos",
-                "delete",
-                "e3e2a6fb-8b26-4b72-b5d4-be5918a2282d"
-              ]
+              "raw": "{{baseUrl}}/disponibilidades/{{psicologoUsuarioId}}/slots?data=2026-06-07",
+              "host": ["{{baseUrl}}"],
+              "path": ["disponibilidades","{{psicologoUsuarioId}}","slots"],
+              "query": [{ "key": "data", "value": "2026-06-07" }]
             }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Consulta",
+      "item": [
+        {
+          "name": "POST /consultas — Paciente agenda consulta",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const res = pm.response.json();",
+            "if (res.id) pm.collectionVariables.set('consultaId', res.id);",
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "pm.test('Status é SOLICITADA', () => pm.expect(res.status).to.eql('SOLICITADA'));",
+            "pm.test('Tem nomePsicologo', () => pm.expect(res.nomePsicologo).to.be.a('string'));",
+            "pm.test('Tem nomePaciente', () => pm.expect(res.nomePaciente).to.be.a('string'));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{tokenPaciente}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"psicologoId\": \"{{psicologoUsuarioId}}\",\n  \"dataHora\": \"2026-06-08T09:00:00\",\n  \"formaPagamento\": \"PIX\",\n  \"observacao\": \"Gostaria de focar em ansiedade social\"\n}" },
+            "url": { "raw": "{{baseUrl}}/consultas", "host": ["{{baseUrl}}"], "path": ["consultas"] }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /consultas/minhas — Paciente lista suas consultas",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Retorna array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenPaciente}}" }],
+            "url": { "raw": "{{baseUrl}}/consultas/minhas", "host": ["{{baseUrl}}"], "path": ["consultas","minhas"] }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /consultas/pendentes — Psicólogo vê solicitações",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Retorna array', () => pm.expect(pm.response.json()).to.be.an('array'));",
+            "if (pm.response.json().length > 0) {",
+            "  pm.test('Status é SOLICITADA', () => pm.expect(pm.response.json()[0].status).to.eql('SOLICITADA'));",
+            "}"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenPsicologo}}" }],
+            "url": { "raw": "{{baseUrl}}/consultas/pendentes", "host": ["{{baseUrl}}"], "path": ["consultas","pendentes"] }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /consultas/agenda — Psicólogo vê todas as consultas",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Retorna array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenPsicologo}}" }],
+            "url": { "raw": "{{baseUrl}}/consultas/agenda", "host": ["{{baseUrl}}"], "path": ["consultas","agenda"] }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /consultas/{id}/status — Psicólogo confirma",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Status é CONFIRMADA', () => pm.expect(pm.response.json().status).to.eql('CONFIRMADA'));"
+          ]}}],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenPsicologo}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/consultas/{{consultaId}}/status?status=CONFIRMADA",
+              "host": ["{{baseUrl}}"],
+              "path": ["consultas","{{consultaId}}","status"],
+              "query": [{ "key": "status", "value": "CONFIRMADA" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /consultas/{id}/status — Psicólogo recusa",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Status é RECUSADA', () => pm.expect(pm.response.json().status).to.eql('RECUSADA'));"
+          ]}}],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenPsicologo}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/consultas/{{consultaId}}/status?status=RECUSADA",
+              "host": ["{{baseUrl}}"],
+              "path": ["consultas","{{consultaId}}","status"],
+              "query": [{ "key": "status", "value": "RECUSADA" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /consultas/{id}/cancelar — Cancelar com 24h",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Status é CANCELADA', () => pm.expect(pm.response.json().status).to.eql('CANCELADA'));",
+            "pm.test('Motivo registrado', () => pm.expect(pm.response.json().motivoCancelamento).to.be.a('string'));"
+          ]}}],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{tokenPaciente}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"motivo\": \"Imprevisto pessoal\"\n}" },
+            "url": { "raw": "{{baseUrl}}/consultas/{{consultaId}}/cancelar", "host": ["{{baseUrl}}"], "path": ["consultas","{{consultaId}}","cancelar"] }
+          },
+          "response": []
+        },
+        {
+          "name": "[ERRO] Cancelar fora do prazo 24h",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 422', () => pm.response.to.have.status(422));",
+            "pm.test('Mensagem de prazo', () => pm.expect(pm.response.json().error).to.include('24h'));"
+          ]}}],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{tokenPaciente}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"motivo\": \"Teste fora do prazo\"\n}" },
+            "url": { "raw": "{{baseUrl}}/consultas/{{consultaId}}/cancelar", "host": ["{{baseUrl}}"], "path": ["consultas","{{consultaId}}","cancelar"] }
+          },
+          "response": []
+        },
+        {
+          "name": "[ERRO] Agendar horário já ocupado",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 409', () => pm.response.to.have.status(409));",
+            "pm.test('Mensagem de conflito', () => pm.expect(pm.response.json().error).to.include('indisponível'));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{tokenPaciente}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"psicologoId\": \"{{psicologoUsuarioId}}\",\n  \"dataHora\": \"2026-06-08T09:00:00\",\n  \"formaPagamento\": \"PIX\",\n  \"observacao\": \"Tentativa de horário duplicado\"\n}" },
+            "url": { "raw": "{{baseUrl}}/consultas", "host": ["{{baseUrl}}"], "path": ["consultas"] }
           },
           "response": []
         }
@@ -656,69 +534,18 @@
       "item": [
         {
           "name": "GET /actuator/health",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Status UP', () => pm.expect(pm.response.json().status).to.eql('UP'));"
-                ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
-              }
-            }
-          ],
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Status UP', () => pm.expect(pm.response.json().status).to.eql('UP'));"
+          ]}}],
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhbmFAZW1haWwuY29tIiwicGVyZmlsIjoiUk9MRV9QU0lDT0xPR08iLCJpYXQiOjE3Nzg1MTEwNjUsImV4cCI6MTc3ODU5NzQ2NX0.VbKiQurUbhnSZmy0KopqSQRM5wer33CRtcInBRMonTjrRF18-HLosMUtd5BQdE_lkbaMkJcoBzgOdKGgLL_oqQ",
-                  "type": "string"
-                }
-              ]
-            },
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/actuator/health",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "actuator",
-                "health"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/actuator/health", "host": ["{{baseUrl}}"], "path": ["actuator","health"] }
           },
           "response": []
         }
       ]
-    }
-  ],
-  "variable": [
-    {
-      "key": "baseUrl",
-      "value": "http://localhost:8080",
-      "type": "string"
-    },
-    {
-      "key": "token",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "pacienteUsuarioId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "psicologoUsuarioId",
-      "value": "",
-      "type": "string"
     }
   ]
 }
