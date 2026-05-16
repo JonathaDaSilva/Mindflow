@@ -1,19 +1,24 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/mindflow_db
-    username: ${DB_USER:admin}
-    password: ${DB_PASS:admin}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/mindflow_db}
+    username: ${DB_USER:mindflow_user}
+    password: ${DB_PASS:mindflow_password}
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: 5672
+    username: ${RABBIT_USER:guest}
+    password: ${RABBIT_PASS:guest}
   security:
     filter:
       dispatcher-types: request, async, error
 
 jwt:
-  secret: bee782a65b499088971509f1685d8de08ed59e017d19acc69136a2fee56a2766
-  expiration: 86400000        
+  secret: mindflow-secret-key-2026-deve-ter-32chars
+  expiration: 86400000
 
 server:
   port: 8080
