@@ -6,7 +6,7 @@ public enum StatusConsulta {
     CONCLUIDA(3),
     CANCELADA(4),
     NAO_COMPARECEU(6),
-    COMFIRMADA(7);
+    CONFIRMADA(7);
 
     private final int valor;
 

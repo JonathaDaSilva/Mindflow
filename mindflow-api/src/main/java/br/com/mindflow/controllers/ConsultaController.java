@@ -2,7 +2,7 @@ package br.com.mindflow.controllers;
 
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpStatus;
-import br.com.mindflow.entity.enums.*;
+import br.com.mindflow.dto.consulta.StatusUpdateRequest;
 import java.util.*;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -41,8 +41,8 @@ public class ConsultaController {
     }
 
     @PatchMapping("/{id}/status")
-    public ConsultaResponse atualizarStatus(@PathVariable UUID id, @RequestParam StatusConsulta status) {
-        return consultaService.atualizarStatus(id, status);
+    public ConsultaResponse atualizarStatus(@PathVariable UUID id, @RequestBody @Valid StatusUpdateRequest req) {
+        return consultaService.atualizarStatus(id, req.status());
     }
 
     @PatchMapping("/{id}/cancelar")

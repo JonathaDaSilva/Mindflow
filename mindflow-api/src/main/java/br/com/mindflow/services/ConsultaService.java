@@ -28,12 +28,14 @@ public class ConsultaService {
 
         if (consultaRepo.existeConflito(req.psicologoId(), req.dataHora()))
             throw new HorarioIndisponivelException();
-        
+
         var slotsLivres = disponibilidadeService.buscarSlotsLivres(
                 req.psicologoId(), req.dataHora().toLocalDate());
 
         boolean slotValido = slotsLivres.stream()
-                .anyMatch(s -> s.dataHora().equals(req.dataHora()));
+                .anyMatch(s -> s.dataHora()
+                        .truncatedTo(ChronoUnit.MINUTES)
+                        .equals(req.dataHora().truncatedTo(ChronoUnit.MINUTES)));
 
         if (!slotValido)
             throw new HorarioIndisponivelException();
