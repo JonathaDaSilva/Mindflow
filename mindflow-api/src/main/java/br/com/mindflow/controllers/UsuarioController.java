@@ -2,6 +2,7 @@ package br.com.mindflow.controllers;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,8 +26,15 @@ public class UsuarioController {
     }
 
     @PutMapping("/me")
-    public UsuarioResponse atualizar(@AuthenticationPrincipal Usuario usuario, @RequestBody @Valid AtualizarUsuarioRequest req) {
+    public UsuarioResponse atualizar(@AuthenticationPrincipal Usuario usuario,
+            @RequestBody @Valid AtualizarUsuarioRequest req) {
         usuario.setNome(req.nome());
         return UsuarioResponse.from(usuarioRepo.save(usuario));
+    }
+
+    @PatchMapping("/me/fcm-token")
+    public void atualizarFcmToken(@AuthenticationPrincipal Usuario usuario, @RequestBody @Valid FcmTokenRequest req) {
+        usuario.setFcmToken(req.fcmToken());
+        usuarioRepo.save(usuario);
     }
 }

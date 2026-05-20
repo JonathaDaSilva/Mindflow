@@ -51,6 +51,9 @@ public class Usuario implements UserDetails {
     @Column(nullable = false)
     private PerfilUsuario perfil;
 
+    @Column(name = "fcm_token")
+    private String fcmToken;
+
     @CreationTimestamp
     @Column(name = "criado_em", nullable = false, updatable = false)
     private LocalDateTime criadoEm;
