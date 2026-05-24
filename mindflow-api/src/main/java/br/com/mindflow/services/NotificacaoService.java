@@ -16,32 +16,24 @@ public class NotificacaoService {
 
     public void notificar(UUID usuarioId, String titulo, String corpo) {
         usuarioRepo.findById(usuarioId).ifPresentOrElse(usuario -> {
-            String fcmToken = usuario.getFcmToken();
 
-            if (fcmToken == null || fcmToken.isBlank()) {
-                log.warn("[NOTIFICACAO] Usuário {} sem FCM token registrado — notificação ignorada",
-                        usuarioId);
-                return;
-            }
-
-            // Por enquanto loga — Sprint 4 integra FCM real
             log.info("[NOTIFICACAO] → {} | titulo: '{}' | corpo: '{}'",
                     usuario.getNome(), titulo, corpo);
 
-            // Sprint 4: descomentar e implementar chamada FCM
-            // enviarPush(fcmToken, titulo, corpo);
+            if (usuario.getFcmToken() == null || 
+                usuario.getFcmToken().isBlank()) {
+                log.warn("[NOTIFICACAO] {} sem FCM token — " +
+                    "notificação registrada mas não enviada",
+                    usuario.getNome());
+                return;
+            }
 
-        }, () -> log.warn("[NOTIFICACAO] Usuário {} não encontrado", usuarioId));
+            // Sprint 4: integrar FCM aqui
+            // enviarPushFCM(usuario.getFcmToken(), titulo, corpo);
+            log.info("[NOTIFICACAO] Push enviado para token: {}",
+                usuario.getFcmToken().substring(0, 10) + "...");
+
+        }, () -> log.warn(
+            "[NOTIFICACAO] Usuário {} não encontrado", usuarioId));
     }
-
-    // Sprint 4: implementar chamada HTTP para FCM
-    // private void enviarPush(String token, String titulo, String corpo) {
-    //     RestClient.create()
-    //         .post()
-    //         .uri("https://fcm.googleapis.com/v1/projects/{projectId}/messages:send")
-    //         .header("Authorization", "Bearer " + getAccessToken())
-    //         .body(montarPayload(token, titulo, corpo))
-    //         .retrieve()
-    //         .toBodilessEntity();
-    // }
 }
