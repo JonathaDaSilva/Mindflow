@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mindflow_shared/mindflow_shared.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'login_screen.dart';
+import 'perfil_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -11,7 +12,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String _nome  = '';
+  String _nome = '';
   String _email = '';
 
   @override
@@ -23,7 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _carregarDados() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _nome  = prefs.getString('nome')  ?? '';
+      _nome = prefs.getString('nome') ?? '';
       _email = prefs.getString('email') ?? '';
     });
   }
@@ -65,9 +66,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   GestureDetector(
-                    onTap: _logout,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const PerfilScreen()),
+                    ).then((_) => _carregarDados()),
                     child: Container(
-                      width: 48, height: 48,
+                      width: 48,
+                      height: 48,
                       decoration: BoxDecoration(
                         color: AppTheme.secondary.withOpacity(0.15),
                         shape: BoxShape.circle,
@@ -114,8 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   fontWeight: FontWeight.w700,
                                   color: Colors.white)),
                           const SizedBox(height: 8),
-                          const Text(
-                              'Pacientes aguardando\nsua confirmação',
+                          const Text('Pacientes aguardando\nsua confirmação',
                               style: TextStyle(
                                   color: Colors.white70, height: 1.5)),
                           const SizedBox(height: 16),
@@ -129,8 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   borderRadius: BorderRadius.circular(12)),
                             ),
                             child: const Text('Ver pendentes',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w600)),
+                                style: TextStyle(fontWeight: FontWeight.w600)),
                           ),
                         ],
                       ),
@@ -209,7 +212,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   child: Row(children: [
                     Container(
-                      width: 44, height: 44,
+                      width: 44,
+                      height: 44,
                       decoration: BoxDecoration(
                         color: AppTheme.secondary.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(12),
@@ -228,8 +232,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   color: AppTheme.textPrimary)),
                           Text(_email,
                               style: const TextStyle(
-                                  color: AppTheme.textSecond,
-                                  fontSize: 12)),
+                                  color: AppTheme.textSecond, fontSize: 12)),
                         ],
                       ),
                     ),
@@ -278,7 +281,8 @@ class _ActionCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 44, height: 44,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
                 color: color.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(12),
