@@ -5,11 +5,13 @@ import 'package:mindflow_shared/mindflow_shared.dart';
 class SlotsScreen extends StatefulWidget {
   final String psicologoId;
   final String nomePsicologo;
+  final DateTime dataInicial; // ← recebe o primeiro dia disponível
 
   const SlotsScreen({
     super.key,
     required this.psicologoId,
     required this.nomePsicologo,
+    required this.dataInicial,
   });
 
   @override
@@ -17,7 +19,7 @@ class SlotsScreen extends StatefulWidget {
 }
 
 class _SlotsScreenState extends State<SlotsScreen> {
-  DateTime _dataSelecionada = DateTime.now();
+  late DateTime _dataSelecionada;
   List<Map<String, dynamic>> _slots = [];
   bool _loading = false;
   String? _erro;
@@ -25,18 +27,15 @@ class _SlotsScreenState extends State<SlotsScreen> {
   @override
   void initState() {
     super.initState();
+    _dataSelecionada = widget.dataInicial; // ← usa o dia que veio
     _buscarSlots(_dataSelecionada);
   }
 
   Future<void> _buscarSlots(DateTime data) async {
-    setState(() {
-      _loading = true;
-      _erro = null;
-      _slots = [];
-    });
+    setState(() { _loading = true; _erro = null; _slots = []; });
     try {
       final dataStr =
-          '${data.year}-${data.month.toString().padLeft(2, '0')}-${data.day.toString().padLeft(2, '0')}';
+          '${data.year}-${data.month.toString().padLeft(2,'0')}-${data.day.toString().padLeft(2,'0')}';
       final res = await ApiClient.get(
           '/disponibilidades/${widget.psicologoId}/slots?data=$dataStr');
 
@@ -47,7 +46,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
       } else {
         setState(() => _erro = 'Erro ao buscar horários');
       }
-    } catch (e) {
+    } catch (_) {
       setState(() => _erro = 'Verifique sua conexão');
     } finally {
       setState(() => _loading = false);
@@ -60,7 +59,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
       initialDate: _dataSelecionada,
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 60)),
-      builder: (context, child) => Theme(
+      builder: (ctx, child) => Theme(
         data: ThemeData.dark().copyWith(
           colorScheme: const ColorScheme.dark(
             primary: AppTheme.primary,
@@ -76,26 +75,8 @@ class _SlotsScreenState extends State<SlotsScreen> {
     }
   }
 
-  String _formatarData(DateTime data) {
-    const dias = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    const meses = [
-      'Jan',
-      'Fev',
-      'Mar',
-      'Abr',
-      'Mai',
-      'Jun',
-      'Jul',
-      'Ago',
-      'Set',
-      'Out',
-      'Nov',
-      'Dez'
-    ];
-    return '${dias[data.weekday % 7]}, ${data.day} de ${meses[data.month - 1]}';
-  }
-
-  Future<void> _agendarConsulta(String dataHora, String horaFormatada) async {
+  Future<void> _agendarConsulta(
+      String dataHora, String horaFormatada) async {
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -103,10 +84,11 @@ class _SlotsScreenState extends State<SlotsScreen> {
         title: const Text('Confirmar agendamento',
             style: TextStyle(color: AppTheme.textPrimary)),
         content: Text(
-          'Agendar consulta com ${widget.nomePsicologo}\n'
+          'Psicólogo: ${widget.nomePsicologo}\n'
           'Data: ${_formatarData(_dataSelecionada)}\n'
           'Horário: $horaFormatada',
-          style: const TextStyle(color: AppTheme.textSecond, height: 1.6),
+          style: const TextStyle(
+              color: AppTheme.textSecond, height: 1.6),
         ),
         actions: [
           TextButton(
@@ -121,44 +103,44 @@ class _SlotsScreenState extends State<SlotsScreen> {
         ],
       ),
     );
-
     if (confirmar != true) return;
 
     try {
       final res = await ApiClient.post('/consultas', {
         'psicologoId': widget.psicologoId,
-        'dataHora': dataHora,
+        'dataHora':    dataHora,
         'formaPagamento': 'PIX',
       });
-
       if (!mounted) return;
-
       if (res.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Consulta solicitada com sucesso! ✅'),
+            content: Text('Consulta solicitada! ✅'),
             backgroundColor: AppTheme.success,
           ),
         );
-        _buscarSlots(_dataSelecionada); // atualiza slots
+        _buscarSlots(_dataSelecionada);
       } else {
         final erro = jsonDecode(res.body)['error'] ?? 'Erro ao agendar';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(erro),
-            backgroundColor: AppTheme.error,
-          ),
+          SnackBar(content: Text(erro),
+              backgroundColor: AppTheme.error),
         );
       }
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Erro de conexão'),
-          backgroundColor: AppTheme.error,
-        ),
+        const SnackBar(content: Text('Erro de conexão'),
+            backgroundColor: AppTheme.error),
       );
     }
+  }
+
+  String _formatarData(DateTime d) {
+    const dias   = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+    const meses  = ['Jan','Fev','Mar','Abr','Mai','Jun',
+                    'Jul','Ago','Set','Out','Nov','Dez'];
+    return '${dias[d.weekday % 7]}, ${d.day} de ${meses[d.month - 1]}';
   }
 
   @override
@@ -187,24 +169,32 @@ class _SlotsScreenState extends State<SlotsScreen> {
               child: GestureDetector(
                 onTap: _selecionarData,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 16),
                   decoration: BoxDecoration(
                     color: AppTheme.surface,
                     borderRadius: BorderRadius.circular(16),
-                    border:
-                        Border.all(color: AppTheme.primary.withOpacity(0.3)),
+                    border: Border.all(
+                        color: AppTheme.primary.withOpacity(0.3)),
                   ),
                   child: Row(children: [
                     const Icon(Icons.calendar_today_rounded,
                         color: AppTheme.primary, size: 20),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Text(
-                        _formatarData(_dataSelecionada),
-                        style: const TextStyle(
-                            color: AppTheme.textPrimary,
-                            fontWeight: FontWeight.w500),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Data selecionada',
+                              style: TextStyle(
+                                  color: AppTheme.textSecond,
+                                  fontSize: 11)),
+                          const SizedBox(height: 2),
+                          Text(_formatarData(_dataSelecionada),
+                              style: const TextStyle(
+                                  color: AppTheme.textPrimary,
+                                  fontWeight: FontWeight.w600)),
+                        ],
                       ),
                     ),
                     const Icon(Icons.keyboard_arrow_down_rounded,
@@ -214,23 +204,24 @@ class _SlotsScreenState extends State<SlotsScreen> {
               ),
             ),
 
-            // Slots
             Expanded(
               child: _loading
                   ? const Center(
-                      child: CircularProgressIndicator(color: AppTheme.primary))
+                      child: CircularProgressIndicator(
+                          color: AppTheme.primary))
                   : _erro != null
                       ? Center(
                           child: Text(_erro!,
-                              style:
-                                  const TextStyle(color: AppTheme.textSecond)))
+                              style: const TextStyle(
+                                  color: AppTheme.textSecond)))
                       : _slots.isEmpty
                           ? Center(
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   const Icon(Icons.event_busy_rounded,
-                                      color: AppTheme.textSecond, size: 48),
+                                      color: AppTheme.textSecond,
+                                      size: 48),
                                   const SizedBox(height: 12),
                                   const Text(
                                       'Sem horários disponíveis\nneste dia',
@@ -241,9 +232,10 @@ class _SlotsScreenState extends State<SlotsScreen> {
                                   const SizedBox(height: 16),
                                   TextButton(
                                     onPressed: _selecionarData,
-                                    child: const Text('Escolher outra data',
-                                        style:
-                                            TextStyle(color: AppTheme.primary)),
+                                    child: const Text(
+                                        'Escolher outra data',
+                                        style: TextStyle(
+                                            color: AppTheme.primary)),
                                   ),
                                 ],
                               ),
@@ -252,7 +244,8 @@ class _SlotsScreenState extends State<SlotsScreen> {
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 24),
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     '${_slots.length} horário${_slots.length > 1 ? 's' : ''} disponível${_slots.length > 1 ? 'is' : ''}',
@@ -278,8 +271,8 @@ class _SlotsScreenState extends State<SlotsScreen> {
                                         final dataHora =
                                             slot['dataHora'] as String;
                                         return GestureDetector(
-                                          onTap: () =>
-                                              _agendarConsulta(dataHora, hora),
+                                          onTap: () => _agendarConsulta(
+                                              dataHora, hora),
                                           child: Container(
                                             decoration: BoxDecoration(
                                               color: AppTheme.primary
@@ -287,9 +280,8 @@ class _SlotsScreenState extends State<SlotsScreen> {
                                               borderRadius:
                                                   BorderRadius.circular(12),
                                               border: Border.all(
-                                                color: AppTheme.primary
-                                                    .withOpacity(0.3),
-                                              ),
+                                                  color: AppTheme.primary
+                                                      .withOpacity(0.3)),
                                             ),
                                             child: Center(
                                               child: Text(hora,

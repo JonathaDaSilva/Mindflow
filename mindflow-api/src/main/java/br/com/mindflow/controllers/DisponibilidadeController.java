@@ -1,6 +1,7 @@
 package br.com.mindflow.controllers;
 
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.*;
@@ -33,4 +34,14 @@ public class DisponibilidadeController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data) {
         return disponibilidadeService.buscarSlotsLivres(psicologoId, data);
     }
+
+    @GetMapping("/{psicologoId}/proximo-disponivel")
+    public ResponseEntity<Map<String, String>> proximoDisponivel(@PathVariable UUID psicologoId) {
+    LocalDate data = disponibilidadeService.buscarProximoDiaDisponivel(psicologoId);
+
+    if (data == null)
+        return ResponseEntity.noContent().build();
+
+    return ResponseEntity.ok(Map.of("data", data.toString()));
+}
 }
