@@ -19,7 +19,6 @@ TopicExchange: mindflow.events
         ├──► Queue: consulta.solicitada  ──► ConsultaEventListener.onConsultaSolicitada()
         ├──► Queue: consulta.confirmada  ──► ConsultaEventListener.onConsultaConfirmada()
         ├──► Queue: consulta.recusada    ──► ConsultaEventListener.onConsultaRecusada()
-        ├──► Queue: consulta.concluida   ──► ConsultaEventListener.onConsultaConcluida()
         └──► Queue: consulta.cancelada   ──► ConsultaEventListener.onConsultaCancelada()
 ```
 
