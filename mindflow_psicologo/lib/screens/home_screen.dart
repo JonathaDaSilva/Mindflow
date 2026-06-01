@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:mindflow_shared/mindflow_shared.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'login_screen.dart';
+import 'disponibilidade_screen.dart';
+import 'consultas_screen.dart';
 import 'perfil_screen.dart';
+import 'agenda_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -124,7 +127,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                   color: Colors.white70, height: 1.5)),
                           const SizedBox(height: 16),
                           ElevatedButton(
-                            onPressed: () {},
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const ConsultasScreen()),
+                            ).then((_) => setState(() {})),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
                               foregroundColor: const Color(0xFF00897B),
@@ -169,24 +176,39 @@ class _HomeScreenState extends State<HomeScreen> {
                     icon: Icons.pending_actions_rounded,
                     label: 'Solicitações',
                     color: const Color(0xFF03DAC6),
-                    onTap: () {},
+                    onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const ConsultasScreen()))
+                        .then((_) => setState(() {})),
                   ),
                   _ActionCard(
                     icon: Icons.calendar_today_rounded,
                     label: 'Minha agenda',
                     color: const Color(0xFF6C63FF),
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const AgendaScreen())),
                   ),
                   _ActionCard(
                     icon: Icons.schedule_rounded,
                     label: 'Disponibilidade',
                     color: const Color(0xFFFFB347),
-                    onTap: () {},
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const DisponibilidadeScreen())),
                   ),
                   _ActionCard(
                     icon: Icons.person_outline_rounded,
                     label: 'Meu perfil',
                     color: const Color(0xFFCF6679),
-                    onTap: () {},
+                    onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const PerfilScreen()))
+                        .then((_) => _carregarDados()),
                   ),
                 ]),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
