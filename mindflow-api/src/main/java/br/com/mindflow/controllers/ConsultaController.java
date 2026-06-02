@@ -2,6 +2,8 @@ package br.com.mindflow.controllers;
 
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+
 import br.com.mindflow.dto.consulta.StatusUpdateRequest;
 import java.util.*;
 import jakarta.validation.Valid;
@@ -20,7 +22,8 @@ public class ConsultaController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ConsultaResponse solicitar(@AuthenticationPrincipal Usuario usuario, @RequestBody @Valid ConsultaRequest req) {
+    public ConsultaResponse solicitar(@AuthenticationPrincipal Usuario usuario,
+            @RequestBody @Valid ConsultaRequest req) {
         return consultaService.solicitar(usuario.getId(), req);
     }
 
@@ -34,7 +37,11 @@ public class ConsultaController {
         return consultaService.listarPendentes(usuario.getId());
     }
 
-    // Psicólogo lista todas as suas consultas
+    @GetMapping("/{id}")
+    public ConsultaResponse buscarPorId(@PathVariable UUID id) {
+        return consultaService.buscarPorId(id);
+    }
+
     @GetMapping("/agenda")
     public List<ConsultaResponse> agenda(@AuthenticationPrincipal Usuario usuario) {
         return consultaService.listarPorPsicologo(usuario.getId());
@@ -48,5 +55,11 @@ public class ConsultaController {
     @PatchMapping("/{id}/cancelar")
     public ConsultaResponse cancelar(@PathVariable UUID id, @RequestBody @Valid CancelamentoRequest req) {
         return consultaService.cancelar(id, req.motivo());
+    }
+
+    @GetMapping("/pendentes/count")
+    public ResponseEntity<Map<String, Integer>> contarPendentes(@AuthenticationPrincipal Usuario usuario) {
+        int total = consultaService.listarPendentes(usuario.getId()).size();
+        return ResponseEntity.ok(Map.of("total", total));
     }
 }

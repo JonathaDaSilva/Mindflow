@@ -3,7 +3,8 @@ import 'package:mindflow_shared/mindflow_shared.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'login_screen.dart';
 import 'perfil_screen.dart';
-import 'psicologos_screen.dart';   // vamos criar a seguir
+import 'psicologos_screen.dart';
+import 'minhas_consultas_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,7 +14,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String _nome  = '';
+  String _nome = '';
   String _email = '';
 
   @override
@@ -25,7 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _carregarDados() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _nome  = prefs.getString('nome')  ?? '';
+      _nome = prefs.getString('nome') ?? '';
       _email = prefs.getString('email') ?? '';
     });
   }
@@ -66,15 +67,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   GestureDetector(
                     onTap: _abrirPerfil,
                     child: Container(
-                      width: 48, height: 48,
+                      width: 48,
+                      height: 48,
                       decoration: BoxDecoration(
                         color: AppTheme.primary.withOpacity(0.15),
                         shape: BoxShape.circle,
                       ),
                       child: Center(
                         child: Text(
-                          _nome.isNotEmpty
-                              ? _nome[0].toUpperCase() : '?',
+                          _nome.isNotEmpty ? _nome[0].toUpperCase() : '?',
                           style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
@@ -123,8 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             onPressed: () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) =>
-                                      const PsicologosScreen()),
+                                  builder: (_) => const PsicologosScreen()),
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
@@ -134,8 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   borderRadius: BorderRadius.circular(12)),
                             ),
                             child: const Text('Buscar agora',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w600)),
+                                style: TextStyle(fontWeight: FontWeight.w600)),
                           ),
                         ],
                       ),
@@ -179,13 +178,17 @@ class _HomeScreenState extends State<HomeScreen> {
                     icon: Icons.calendar_month_rounded,
                     label: 'Minhas consultas',
                     color: const Color(0xFF03DAC6),
-                    onTap: () {}, // Sprint 3
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const MinhasConsultasScreen()),
+                    ),
                   ),
                   _ActionCard(
                     icon: Icons.emergency_rounded,
                     label: 'Emergência',
                     color: const Color(0xFFCF6679),
-                    onTap: () {}, // Sprint 3
+                    onTap: () {}, 
                   ),
                   _ActionCard(
                     icon: Icons.person_outline_rounded,
@@ -194,8 +197,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     onTap: _abrirPerfil,
                   ),
                 ]),
-                gridDelegate:
-                    const SliverGridDelegateWithFixedCrossAxisCount(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
@@ -238,7 +240,8 @@ class _ActionCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 44, height: 44,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
                 color: color.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(12),
