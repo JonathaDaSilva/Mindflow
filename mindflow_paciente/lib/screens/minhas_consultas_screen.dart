@@ -1,53 +1,68 @@
-import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mindflow_shared/mindflow_shared.dart';
 import 'detalhe_consulta_screen.dart';
-import 'package:flutter/scheduler.dart';
+import '../services/consulta_monitor_service.dart';
 
 class MinhasConsultasScreen extends StatefulWidget {
   const MinhasConsultasScreen({super.key});
 
   @override
-  State<MinhasConsultasScreen> createState() => _MinhasConsultasScreenState();
+  State<MinhasConsultasScreen> createState() =>
+      _MinhasConsultasScreenState();
 }
 
-class _MinhasConsultasScreenState extends State<MinhasConsultasScreen> {
+class _MinhasConsultasScreenState
+    extends State<MinhasConsultasScreen> {
   List<Map<String, dynamic>> _consultas = [];
   bool _loading = true;
   String? _erro;
-  late final _AppLifecycleObserver _lifecycleObserver;
 
   @override
   void initState() {
     super.initState();
+    // Monitor MOM — atualiza lista quando backend processa evento
+    ConsultaMonitorService.adicionarListener(_onConsultasAtualizadas);
+    ConsultaMonitorService.verificarAgora();
     _carregar();
-    _lifecycleObserver = _AppLifecycleObserver(onResume: _carregar);
-    WidgetsBinding.instance.addObserver(_lifecycleObserver);
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance
-        .removeObserver(_AppLifecycleObserver(onResume: _carregar));
+    ConsultaMonitorService.removerListener(_onConsultasAtualizadas);
     super.dispose();
   }
 
-  Future<void> _carregar() async {
-    setState(() {
-      _loading = true;
-      _erro = null;
+  void _onConsultasAtualizadas(
+      List<Map<String, dynamic>> consultas) {
+    if (!mounted) return;
+    final lista = List<Map<String, dynamic>>.from(consultas);
+    lista.sort((a, b) {
+      final da =
+          DateTime.tryParse(a['dataHora'] ?? '') ?? DateTime(0);
+      final db =
+          DateTime.tryParse(b['dataHora'] ?? '') ?? DateTime(0);
+      return db.compareTo(da);
     });
+    setState(() {
+      _consultas = lista;
+      _loading   = false;
+    });
+  }
+
+  Future<void> _carregar() async {
+    setState(() { _loading = true; _erro = null; });
     try {
       final res = await ApiClient.get('/consultas/minhas');
       if (res.statusCode == 200) {
         final lista = (jsonDecode(res.body) as List)
             .map((e) => e as Map<String, dynamic>)
             .toList();
-        // Ordena: mais recentes primeiro
         lista.sort((a, b) {
-          final da = DateTime.tryParse(a['dataHora'] ?? '') ?? DateTime(0);
-          final db = DateTime.tryParse(b['dataHora'] ?? '') ?? DateTime(0);
+          final da =
+              DateTime.tryParse(a['dataHora'] ?? '') ?? DateTime(0);
+          final db =
+              DateTime.tryParse(b['dataHora'] ?? '') ?? DateTime(0);
           return db.compareTo(da);
         });
         setState(() => _consultas = lista);
@@ -63,38 +78,25 @@ class _MinhasConsultasScreenState extends State<MinhasConsultasScreen> {
 
   Color _statusColor(String? s) {
     switch (s) {
-      case 'SOLICITADA':
-        return Colors.orange;
-      case 'CONFIRMADA':
-        return AppTheme.success;
+      case 'SOLICITADA':   return Colors.orange;
+      case 'CONFIRMADA':   return AppTheme.success;
       case 'RECUSADA':
-      case 'CANCELADA':
-        return AppTheme.error;
-      case 'EM_ANDAMENTO':
-        return AppTheme.secondary;
-      case 'CONCLUIDA':
-        return AppTheme.primary;
-      default:
-        return AppTheme.textSecond;
+      case 'CANCELADA':    return AppTheme.error;
+      case 'EM_ANDAMENTO': return AppTheme.secondary;
+      case 'CONCLUIDA':    return AppTheme.primary;
+      default:             return AppTheme.textSecond;
     }
   }
 
   IconData _statusIcon(String? s) {
     switch (s) {
-      case 'SOLICITADA':
-        return Icons.schedule_rounded;
-      case 'CONFIRMADA':
-        return Icons.check_circle_outline;
+      case 'SOLICITADA':   return Icons.schedule_rounded;
+      case 'CONFIRMADA':   return Icons.check_circle_outline;
       case 'RECUSADA':
-        return Icons.cancel_outlined;
-      case 'CANCELADA':
-        return Icons.cancel_outlined;
-      case 'EM_ANDAMENTO':
-        return Icons.play_circle_outline;
-      case 'CONCLUIDA':
-        return Icons.task_alt_rounded;
-      default:
-        return Icons.help_outline;
+      case 'CANCELADA':    return Icons.cancel_outlined;
+      case 'EM_ANDAMENTO': return Icons.play_circle_outline;
+      case 'CONCLUIDA':    return Icons.task_alt_rounded;
+      default:             return Icons.help_outline;
     }
   }
 
@@ -102,26 +104,14 @@ class _MinhasConsultasScreenState extends State<MinhasConsultasScreen> {
     if (dh == null) return '';
     try {
       final dt = DateTime.parse(dh);
-      const dias = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-      const meses = [
-        'Jan',
-        'Fev',
-        'Mar',
-        'Abr',
-        'Mai',
-        'Jun',
-        'Jul',
-        'Ago',
-        'Set',
-        'Out',
-        'Nov',
-        'Dez'
-      ];
-      return '${dias[dt.weekday % 7]}, ${dt.day} ${meses[dt.month - 1]} · '
-          '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-    } catch (_) {
-      return dh;
-    }
+      const dias   = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+      const meses  = ['Jan','Fev','Mar','Abr','Mai','Jun',
+                      'Jul','Ago','Set','Out','Nov','Dez'];
+      return '${dias[dt.weekday % 7]}, ${dt.day} '
+             '${meses[dt.month - 1]} · '
+             '${dt.hour.toString().padLeft(2,'0')}:'
+             '${dt.minute.toString().padLeft(2,'0')}';
+    } catch (_) { return dh; }
   }
 
   @override
@@ -135,12 +125,16 @@ class _MinhasConsultasScreenState extends State<MinhasConsultasScreen> {
               color: AppTheme.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Minhas Consultas',
-            style: TextStyle(
-                color: AppTheme.textPrimary, fontWeight: FontWeight.w600)),
+        title: const Text(
+          'Minhas Consultas',
+          style: TextStyle(
+              color: AppTheme.textPrimary,
+              fontWeight: FontWeight.w600),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: AppTheme.textSecond),
+            icon: const Icon(Icons.refresh_rounded,
+                color: AppTheme.textSecond),
             onPressed: _carregar,
             tooltip: 'Atualizar',
           ),
@@ -148,7 +142,8 @@ class _MinhasConsultasScreenState extends State<MinhasConsultasScreen> {
       ),
       body: _loading
           ? const Center(
-              child: CircularProgressIndicator(color: AppTheme.primary))
+              child: CircularProgressIndicator(
+                  color: AppTheme.primary))
           : _erro != null
               ? Center(
                   child: Column(
@@ -158,7 +153,8 @@ class _MinhasConsultasScreenState extends State<MinhasConsultasScreen> {
                           color: AppTheme.error, size: 48),
                       const SizedBox(height: 12),
                       Text(_erro!,
-                          style: const TextStyle(color: AppTheme.textSecond)),
+                          style: const TextStyle(
+                              color: AppTheme.textSecond)),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _carregar,
@@ -175,13 +171,17 @@ class _MinhasConsultasScreenState extends State<MinhasConsultasScreen> {
                           const Icon(Icons.calendar_today_rounded,
                               color: AppTheme.textSecond, size: 48),
                           const SizedBox(height: 12),
-                          const Text('Você ainda não tem consultas',
-                              style: TextStyle(color: AppTheme.textSecond)),
+                          const Text(
+                            'Você ainda não tem consultas',
+                            style:
+                                TextStyle(color: AppTheme.textSecond),
+                          ),
                           const SizedBox(height: 16),
                           ElevatedButton.icon(
                             onPressed: () => Navigator.pop(context),
                             icon: const Icon(Icons.search_rounded),
-                            label: const Text('Buscar psicólogos'),
+                            label:
+                                const Text('Buscar psicólogos'),
                           ),
                         ],
                       ),
@@ -193,26 +193,30 @@ class _MinhasConsultasScreenState extends State<MinhasConsultasScreen> {
                         padding: const EdgeInsets.all(20),
                         itemCount: _consultas.length,
                         itemBuilder: (_, i) {
-                          final c = _consultas[i];
-                          final id = c['id'] as String;
-                          final psicologo = c['nomePsicologo'] as String? ?? '';
-                          final dh = c['dataHora'] as String?;
-                          final status = c['status'] as String?;
+                          final c         = _consultas[i];
+                          final id        = c['id'] as String;
+                          final psicologo =
+                              c['nomePsicologo'] as String? ?? '';
+                          final dh    = c['dataHora'] as String?;
+                          final status = c['status']  as String?;
 
                           return GestureDetector(
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => DetalheConsultaScreen(
+                                builder: (_) =>
+                                    DetalheConsultaScreen(
                                   consultaId: id,
                                 ),
                               ),
                             ).then((_) => _carregar()),
                             child: Container(
-                              margin: const EdgeInsets.only(bottom: 14),
+                              margin:
+                                  const EdgeInsets.only(bottom: 14),
                               decoration: BoxDecoration(
                                 color: AppTheme.surface,
-                                borderRadius: BorderRadius.circular(18),
+                                borderRadius:
+                                    BorderRadius.circular(18),
                                 border: Border(
                                   left: BorderSide(
                                     color: _statusColor(status),
@@ -222,13 +226,12 @@ class _MinhasConsultasScreenState extends State<MinhasConsultasScreen> {
                               ),
                               padding: const EdgeInsets.all(18),
                               child: Row(children: [
-                                // Ícone de status
                                 Container(
                                   width: 44,
                                   height: 44,
                                   decoration: BoxDecoration(
-                                    color:
-                                        _statusColor(status).withOpacity(0.12),
+                                    color: _statusColor(status)
+                                        .withOpacity(0.12),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(
@@ -243,42 +246,57 @@ class _MinhasConsultasScreenState extends State<MinhasConsultasScreen> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Text(psicologo,
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                              color: AppTheme.textPrimary,
-                                              fontSize: 15)),
+                                      Text(
+                                        psicologo,
+                                        style: const TextStyle(
+                                            fontWeight:
+                                                FontWeight.w600,
+                                            color:
+                                                AppTheme.textPrimary,
+                                            fontSize: 15),
+                                      ),
                                       const SizedBox(height: 4),
-                                      Text(_formatarDataHora(dh),
-                                          style: const TextStyle(
-                                              color: AppTheme.textSecond,
-                                              fontSize: 13)),
+                                      Text(
+                                        _formatarDataHora(dh),
+                                        style: const TextStyle(
+                                            color:
+                                                AppTheme.textSecond,
+                                            fontSize: 13),
+                                      ),
                                     ],
                                   ),
                                 ),
-                                // Badge status
                                 Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.end,
                                   children: [
                                     Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 4),
+                                      padding:
+                                          const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 4),
                                       decoration: BoxDecoration(
                                         color: _statusColor(status)
                                             .withOpacity(0.12),
-                                        borderRadius: BorderRadius.circular(20),
+                                        borderRadius:
+                                            BorderRadius.circular(20),
                                       ),
                                       child: Text(
                                         status ?? '',
                                         style: TextStyle(
-                                            color: _statusColor(status),
+                                            color:
+                                                _statusColor(status),
                                             fontSize: 11,
-                                            fontWeight: FontWeight.w600),
+                                            fontWeight:
+                                                FontWeight.w600),
                                       ),
                                     ),
                                     const SizedBox(height: 8),
-                                    const Icon(Icons.arrow_forward_ios_rounded,
-                                        color: AppTheme.textSecond, size: 14),
+                                    const Icon(
+                                      Icons.arrow_forward_ios_rounded,
+                                      color: AppTheme.textSecond,
+                                      size: 14,
+                                    ),
                                   ],
                                 ),
                               ]),
@@ -288,15 +306,5 @@ class _MinhasConsultasScreenState extends State<MinhasConsultasScreen> {
                       ),
                     ),
     );
-  }
-}
-
-class _AppLifecycleObserver extends WidgetsBindingObserver {
-  final VoidCallback onResume;
-  _AppLifecycleObserver({required this.onResume});
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) onResume();
   }
 }

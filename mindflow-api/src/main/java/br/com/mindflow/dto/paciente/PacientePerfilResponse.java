@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import br.com.mindflow.entity.PacientePerfil;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 public record PacientePerfilResponse(
 
@@ -14,6 +15,7 @@ public record PacientePerfilResponse(
     LocalDate dataNascimento,
     String formaPagamentoPref,
     String observacoesSaude,
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     LocalDateTime criadoEm
 
 ) {

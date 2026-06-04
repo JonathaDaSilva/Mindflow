@@ -28,7 +28,7 @@ public record PsicologoPerfilResponse(
                 p.getEndereco().getCep()
             );
         return new PsicologoPerfilResponse(
-            p.getId(),
+            p.getUsuario().getId(),
             p.getUsuario().getNome(),
             p.getCrp(), p.getEspecialidade(), p.getBio(),
             p.getRegimeTrabalho().name(),
