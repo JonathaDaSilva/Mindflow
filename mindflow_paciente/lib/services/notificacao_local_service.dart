@@ -15,32 +15,23 @@ class NotificacaoLocalService {
     _iniciado = true;
   }
 
-  static const _detalhes = NotificationDetails(
-    android: AndroidNotificationDetails(
-      'mindflow_consultas',
-      'Consultas MindFlow',
-      channelDescription: 'Notificações de novas consultas',
-      importance: Importance.high,
-      priority: Priority.high,
-      icon: '@mipmap/ic_launcher',
-    ),
-  );
-
-  /// Exibe qualquer notificação com título e corpo livres.
   static Future<void> mostrar(String titulo, String corpo) async {
+    const detalhes = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'mindflow_paciente',
+        'MindFlow Paciente',
+        channelDescription: 'Atualizações das suas consultas',
+        importance: Importance.high,
+        priority: Priority.high,
+        icon: '@mipmap/ic_launcher',
+      ),
+    );
+
     await _plugin.show(
       DateTime.now().millisecondsSinceEpoch ~/ 1000,
       titulo,
       corpo,
-      _detalhes,
-    );
-  }
-
-  static Future<void> mostrarNovaSolicitacao(
-      String nomePaciente, String dataHora) async {
-    await mostrar(
-      'Nova solicitação de consulta',
-      '$nomePaciente solicitou uma consulta',
+      detalhes,
     );
   }
 }

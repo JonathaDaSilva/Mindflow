@@ -22,6 +22,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
 
+    // SSE usa async dispatch do Tomcat — sem isso, o filtro é pulado na
+    // segunda passagem e o Spring Security rejeita com 403 "Access Denied".
+    @Override
+    protected boolean shouldNotFilterAsyncDispatch() {
+        return false;
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,

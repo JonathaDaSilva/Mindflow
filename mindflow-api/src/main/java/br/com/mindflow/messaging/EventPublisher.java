@@ -9,7 +9,7 @@ import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
 
-import tools.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 
@@ -38,10 +38,6 @@ public class EventPublisher {
 
             Message message = MessageBuilder
                     .withBody(payload)
-                    .andProperties(MessageBuilder
-                            .withBody(payload)
-                            .build()
-                            .getMessageProperties())
                     .setContentType(MessageProperties.CONTENT_TYPE_JSON)
                     .build();
 

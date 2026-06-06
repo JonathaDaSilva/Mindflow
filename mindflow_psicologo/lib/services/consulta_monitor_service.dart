@@ -3,34 +3,129 @@ import 'dart:convert';
 import 'package:mindflow_shared/mindflow_shared.dart';
 import 'notificacao_local_service.dart';
 
+/// Monitora consultas pendentes do psicólogo.
+///
+/// Duas camadas:
+///   1. SSE  → GET /notificacoes/stream  (tempo real via RabbitMQ → Spring → Flutter)
+///   2. Poll → fallback a cada 30 s      (cobre app em background / SSE caído)
 class ConsultaMonitorService {
-  static Timer? _timer;
-  static int _ultimoTotal = -1; 
+  // ── SSE ──────────────────────────────────────────────────────────────────
+  static StreamSubscription<String>? _sseSub;
+
+  // ── Poll ──────────────────────────────────────────────────────────────────
+  static Timer? _pollTimer;
+  static int _ultimoTotal = -1;
+
+  // Listeners da HomeScreen — recebem o total de pendentes
   static final List<void Function(int)> _listeners = [];
 
-  /// Inicia o monitoramento. Verifica a cada 30 segundos.
+  // Reconexão SSE com backoff exponencial
+  static Timer? _reconectTimer;
+  static int _falhasSSE = 0;
+  static const _maxFalhas = 5;
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // API pública
+  // ─────────────────────────────────────────────────────────────────────────
+
   static void iniciar() {
-    if (_timer != null) return; // já está rodando
-    _verificar(); // verifica imediatamente
-    _timer = Timer.periodic(
-      const Duration(seconds: 30),
-      (_) => _verificar(),
-    );
+    _conectarSSE();
+    _iniciarPoll();
   }
 
   static void parar() {
-    _timer?.cancel();
-    _timer = null;
+    _sseSub?.cancel();        _sseSub = null;
+    _pollTimer?.cancel();     _pollTimer = null;
+    _reconectTimer?.cancel(); _reconectTimer = null;
     _ultimoTotal = -1;
+    _falhasSSE = 0;
   }
 
-  /// Registra um listener para receber o total de pendentes
-  static void adicionarListener(void Function(int) listener) {
-    _listeners.add(listener);
+  static void adicionarListener(void Function(int) listener) =>
+      _listeners.add(listener);
+
+  static void removerListener(void Function(int) listener) =>
+      _listeners.remove(listener);
+
+  static Future<void> verificarAgora() => _verificar();
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SSE
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static Future<void> _conectarSSE() async {
+    if (_falhasSSE >= _maxFalhas) return; // só o poll cuida
+
+    try {
+      await _sseSub?.cancel();
+
+      final stream = await ApiClient.sseStream('/notificacoes/stream');
+
+      _sseSub = stream.listen(
+        _processarLinhaSSE,
+        onError: (_) => _agendarReconexao(),
+        onDone:  ()  => _agendarReconexao(),
+        cancelOnError: false,
+      );
+
+      _falhasSSE = 0;
+    } catch (_) {
+      _agendarReconexao();
+    }
   }
 
-  static void removerListener(void Function(int) listener) {
-    _listeners.remove(listener);
+  static void _agendarReconexao() {
+    _falhasSSE++;
+    _sseSub?.cancel(); _sseSub = null;
+    _reconectTimer?.cancel();
+
+    if (_falhasSSE >= _maxFalhas) return;
+
+    // Backoff: 5 s, 10 s, 20 s, 40 s, 80 s
+    final delay = Duration(seconds: 5 * (1 << (_falhasSSE - 1)));
+    _reconectTimer = Timer(delay, _conectarSSE);
+  }
+
+  /// Processa linhas SSE enviadas pelo backend.
+  ///
+  /// O Spring envia:
+  ///   event: notificacao
+  ///   data: {"consultaId":"...","status":"SOLICITADA","nomePaciente":"...","titulo":"...","corpo":"..."}
+  static void _processarLinhaSSE(String linha) {
+    if (linha.startsWith(':')) return; // comentário / heartbeat
+    if (!linha.startsWith('data:')) return;
+
+    final json = linha.substring(5).trim();
+    if (json.isEmpty) return;
+
+    try {
+      final evento = jsonDecode(json) as Map<String, dynamic>;
+
+      final titulo = evento['titulo'] as String?;
+      final corpo  = evento['corpo']  as String?;
+
+      if (titulo != null && corpo != null) {
+        NotificacaoLocalService.mostrar(titulo, corpo);
+      }
+
+      // Atualiza contagem de pendentes em tempo real
+      _verificar();
+    } catch (_) {
+      // JSON malformado — ignora
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Poll
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static void _iniciarPoll() {
+    if (_pollTimer != null) return;
+    _verificar();
+    _pollTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _verificar(),
+    );
   }
 
   static Future<void> _verificar() async {
@@ -38,28 +133,23 @@ class ConsultaMonitorService {
       final res = await ApiClient.get('/consultas/pendentes/count');
       if (res.statusCode != 200) return;
 
-      final data   = jsonDecode(res.body) as Map<String, dynamic>;
-      final total  = data['total'] as int? ?? 0;
+      final data  = jsonDecode(res.body) as Map<String, dynamic>;
+      final total = data['total'] as int? ?? 0;
 
-      // Notifica listeners com o total atual
-      for (final l in _listeners) {
-        l(total);
-      }
+      for (final l in _listeners) l(total);
 
-      // Se aumentou desde a última verificação, dispara notificação
+      // Se aumentou desde a última verificação e o SSE não notificou, dispara
       if (_ultimoTotal >= 0 && total > _ultimoTotal) {
-        // Busca os novos pendentes para mostrar o nome
         final r2 = await ApiClient.get('/consultas/pendentes');
         if (r2.statusCode == 200) {
           final lista = (jsonDecode(r2.body) as List)
               .map((e) => e as Map<String, dynamic>)
               .toList();
           if (lista.isNotEmpty) {
-            final novo    = lista.first;
+            final novo     = lista.first;
             final paciente = novo['nomePaciente'] as String? ?? 'Paciente';
             final dh       = novo['dataHora']     as String? ?? '';
-            await NotificacaoLocalService
-                .mostrarNovaSolicitacao(paciente, dh);
+            await NotificacaoLocalService.mostrarNovaSolicitacao(paciente, dh);
           }
         }
       }
@@ -69,7 +159,4 @@ class ConsultaMonitorService {
       // Falha silenciosa — tenta na próxima rodada
     }
   }
-
-  /// Força uma verificação imediata (ex: ao voltar para o app)
-  static Future<void> verificarAgora() => _verificar();
 }

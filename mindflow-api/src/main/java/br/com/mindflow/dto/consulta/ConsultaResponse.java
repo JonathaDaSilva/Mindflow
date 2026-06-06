@@ -3,16 +3,19 @@ package br.com.mindflow.dto.consulta;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import br.com.mindflow.entity.Consulta;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 public record ConsultaResponse(
     UUID id,
     String nomePaciente,
     String nomePsicologo,
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     LocalDateTime dataHora,
     String status,
     String formaPagamento,
     String observacao,
     String motivoCancelamento,
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     LocalDateTime criadoEm
 ) {
     public static ConsultaResponse from(Consulta c) {
