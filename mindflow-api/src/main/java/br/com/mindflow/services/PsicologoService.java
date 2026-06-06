@@ -17,9 +17,17 @@ public class PsicologoService {
 
     private final PsicologoPerfilRepository perfilRepo;
     private final UsuarioRepository usuarioRepository;
-    // Paciente lista psicólogos disponíveis
+    // Paciente lista todos os psicólogos ativos
     public List<PsicologoPerfilResponse> listarTodos() {
         return perfilRepo.findByAtivoTrue()
+            .stream()
+            .map(PsicologoPerfilResponse::from)
+            .toList();
+    }
+
+    // Paciente lista apenas psicólogos que aceitam atendimentos de emergência
+    public List<PsicologoPerfilResponse> listarEmergencia() {
+        return perfilRepo.findByAtivoTrueAndAceitaEmergenciaTrue()
             .stream()
             .map(PsicologoPerfilResponse::from)
             .toList();

@@ -16,4 +16,6 @@ public interface PsicologoPerfilRepository extends JpaRepository<PsicologoPerfil
     );
 
     List<PsicologoPerfil> findByAtivoTrue();
+
+    List<PsicologoPerfil> findByAtivoTrueAndAceitaEmergenciaTrue();
 }
