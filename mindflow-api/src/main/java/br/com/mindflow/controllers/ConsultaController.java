@@ -10,7 +10,10 @@ import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import br.com.mindflow.entity.Usuario;
 import br.com.mindflow.dto.consulta.*;
+import br.com.mindflow.dto.avaliacao.AvaliacaoRequest;
+import br.com.mindflow.dto.avaliacao.AvaliacaoResponse;
 import br.com.mindflow.services.ConsultaService;
+import br.com.mindflow.services.AvaliacaoService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -19,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 public class ConsultaController {
 
     private final ConsultaService consultaService;
+    private final AvaliacaoService avaliacaoService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -61,5 +65,22 @@ public class ConsultaController {
     public ResponseEntity<Map<String, Integer>> contarPendentes(@AuthenticationPrincipal Usuario usuario) {
         int total = consultaService.listarPendentes(usuario.getId()).size();
         return ResponseEntity.ok(Map.of("total", total));
+    }
+
+    // RF16 — paciente avalia (nota 1-5 + comentário) a consulta já concluída
+    @PostMapping("/{id}/avaliacao")
+    @ResponseStatus(HttpStatus.CREATED)
+    public AvaliacaoResponse avaliar(@AuthenticationPrincipal Usuario usuario,
+            @PathVariable UUID id, @RequestBody @Valid AvaliacaoRequest req) {
+        return avaliacaoService.avaliar(usuario.getId(), id, req);
+    }
+
+    // Consulta a avaliação de uma consulta (200 se existe, 204 se ainda não avaliada)
+    @GetMapping("/{id}/avaliacao")
+    public ResponseEntity<AvaliacaoResponse> buscarAvaliacao(@PathVariable UUID id) {
+        var avaliacao = avaliacaoService.buscarPorConsulta(id);
+        return avaliacao == null
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.ok(avaliacao);
     }
 }
