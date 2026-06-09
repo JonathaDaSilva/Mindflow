@@ -45,7 +45,7 @@ public class NotificacaoSseService {
 
     public void enviar(UUID usuarioId, String titulo, String corpo, ConsultaEvent event) {
         SseEmitter emitter = emitters.get(usuarioId);
-        if (emitter == null) return; // usuário offline — poll de 30s cobre
+        if (emitter == null) return; 
 
         try {
             emitter.send(SseEmitter.event()

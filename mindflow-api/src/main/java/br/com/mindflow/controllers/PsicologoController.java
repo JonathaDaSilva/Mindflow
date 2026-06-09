@@ -23,10 +23,16 @@ public class PsicologoController {
 
     private final PsicologoService psicologoService;
 
-    // GET /psicologos — paciente lista psicólogos disponíveis
+    // GET /psicologos — paciente lista todos os psicólogos ativos
     @GetMapping
     public List<PsicologoPerfilResponse> listar() {
         return psicologoService.listarTodos();
+    }
+
+    // GET /psicologos/emergencia — paciente busca psicólogos que aceitam emergências
+    @GetMapping("/emergencia")
+    public List<PsicologoPerfilResponse> listarEmergencia() {
+        return psicologoService.listarEmergencia();
     }
 
     // GET /psicologos/perfil — psicólogo lê seu próprio perfil

@@ -23,8 +23,8 @@ import java.time.format.DateTimeFormatter;
 public class ConsultaEventListener {
 
     private final ObjectMapper objectMapper;
-    private final NotificacaoService    notificacaoService; // já existia
-    private final NotificacaoSseService sseService;         // ← NOVO (injetado pelo @RequiredArgsConstructor)
+    private final NotificacaoService    notificacaoService; 
+    private final NotificacaoSseService sseService;         
 
     // ── Fila: consulta.solicitada → notifica PSICÓLOGO ───────────────────
 
@@ -44,8 +44,8 @@ public class ConsultaEventListener {
             String corpo  = String.format("%s solicitou uma consulta para %s",
                     event.nomePaciente(), formatarData(event.dataHora()));
 
-            notificacaoService.notificar(event.psicologoId(), titulo, corpo); // já existia
-            sseService.enviar(event.psicologoId(), titulo, corpo, event);     // ← NOVO
+            notificacaoService.notificar(event.psicologoId(), titulo, corpo); 
+            sseService.enviar(event.psicologoId(), titulo, corpo, event);    
 
         } catch (Exception e) {
             log.error("[{}] Erro ao processar: {}",
@@ -70,8 +70,8 @@ public class ConsultaEventListener {
             String corpo  = String.format("Sua consulta com %s foi confirmada para %s",
                     event.nomePsicologo(), formatarData(event.dataHora()));
 
-            notificacaoService.notificar(event.pacienteId(), titulo, corpo); // já existia
-            sseService.enviar(event.pacienteId(), titulo, corpo, event);     // ← NOVO
+            notificacaoService.notificar(event.pacienteId(), titulo, corpo); 
+            sseService.enviar(event.pacienteId(), titulo, corpo, event);     
 
         } catch (Exception e) {
             log.error("[{}] Erro: {}", Eventos.CONSULTA_CONFIRMADA, e.getMessage());
@@ -95,8 +95,8 @@ public class ConsultaEventListener {
                     "%s não pôde aceitar sua solicitação para %s. Tente outro horário.",
                     event.nomePsicologo(), formatarData(event.dataHora()));
 
-            notificacaoService.notificar(event.pacienteId(), titulo, corpo); // já existia
-            sseService.enviar(event.pacienteId(), titulo, corpo, event);     // ← NOVO
+            notificacaoService.notificar(event.pacienteId(), titulo, corpo); 
+            sseService.enviar(event.pacienteId(), titulo, corpo, event);     
 
         } catch (Exception e) {
             log.error("[{}] Erro: {}", Eventos.CONSULTA_RECUSADA, e.getMessage());
@@ -120,23 +120,22 @@ public class ConsultaEventListener {
             String corpoPac  = String.format("Sua consulta de %s foi cancelada",
                     formatarData(event.dataHora()));
 
-            notificacaoService.notificar(event.pacienteId(), tituloPac, corpoPac); // já existia
-            sseService.enviar(event.pacienteId(), tituloPac, corpoPac, event);     // ← NOVO
+            notificacaoService.notificar(event.pacienteId(), tituloPac, corpoPac); 
+            sseService.enviar(event.pacienteId(), tituloPac, corpoPac, event);    
 
             // Psicólogo
             String tituloPsi = "Consulta cancelada";
             String corpoPsi  = String.format("A consulta com %s em %s foi cancelada",
                     event.nomePaciente(), formatarData(event.dataHora()));
 
-            notificacaoService.notificar(event.psicologoId(), tituloPsi, corpoPsi); // já existia
-            sseService.enviar(event.psicologoId(), tituloPsi, corpoPsi, event);     // ← NOVO
+            notificacaoService.notificar(event.psicologoId(), tituloPsi, corpoPsi); 
+            sseService.enviar(event.psicologoId(), tituloPsi, corpoPsi, event);    
 
         } catch (Exception e) {
             log.error("[{}] Erro: {}", Eventos.CONSULTA_CANCELADA, e.getMessage());
         }
     }
 
-    // ── Helper (igual ao original) ────────────────────────────────────────
 
     private String formatarData(String dataHora) {
         try {
