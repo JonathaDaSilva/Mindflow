@@ -8,6 +8,8 @@ class ApiClient {
   // Em dispositivo físico → troque pelo IP da sua máquina na rede Wi-Fi
   static const String baseUrl = 'http://10.0.2.2:8080/api';
 
+  static const Duration _timeout = Duration(seconds: 15);
+
   // ── Token ─────────────────────────────────────────────────────────────────
 
   static Future<String?> _getToken() async {
@@ -32,29 +34,39 @@ class ApiClient {
   // ── REST ──────────────────────────────────────────────────────────────────
 
   static Future<http.Response> get(String path) async {
-    return http.get(Uri.parse('$baseUrl$path'), headers: await _headers());
+    return http
+        .get(Uri.parse('$baseUrl$path'), headers: await _headers())
+        .timeout(_timeout);
   }
 
   static Future<http.Response> post(
       String path, Map<String, dynamic> body) async {
-    return http.post(Uri.parse('$baseUrl$path'),
-        headers: await _headers(), body: jsonEncode(body));
+    return http
+        .post(Uri.parse('$baseUrl$path'),
+            headers: await _headers(), body: jsonEncode(body))
+        .timeout(_timeout);
   }
 
   static Future<http.Response> put(
       String path, Map<String, dynamic> body) async {
-    return http.put(Uri.parse('$baseUrl$path'),
-        headers: await _headers(), body: jsonEncode(body));
+    return http
+        .put(Uri.parse('$baseUrl$path'),
+            headers: await _headers(), body: jsonEncode(body))
+        .timeout(_timeout);
   }
 
   static Future<http.Response> patch(
       String path, Map<String, dynamic> body) async {
-    return http.patch(Uri.parse('$baseUrl$path'),
-        headers: await _headers(), body: jsonEncode(body));
+    return http
+        .patch(Uri.parse('$baseUrl$path'),
+            headers: await _headers(), body: jsonEncode(body))
+        .timeout(_timeout);
   }
 
   static Future<http.Response> delete(String path) async {
-    return http.delete(Uri.parse('$baseUrl$path'), headers: await _headers());
+    return http
+        .delete(Uri.parse('$baseUrl$path'), headers: await _headers())
+        .timeout(_timeout);
   }
 
   // ── SSE — Server-Sent Events ──────────────────────────────────────────────

@@ -4,12 +4,16 @@ import 'package:mindflow_shared/mindflow_shared.dart';
 import 'screens/splash_screen.dart';
 import 'services/notificacao_local_service.dart';
 import 'services/consulta_monitor_service.dart';
+import 'theme/paciente_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotificacaoLocalService.inicializar();
   SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+    ),
   );
   runApp(const MindFlowApp());
 }
@@ -33,6 +37,7 @@ class _MindFlowAppState extends State<MindFlowApp>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    ConsultaMonitorService.parar();
     super.dispose();
   }
 
@@ -47,7 +52,7 @@ class _MindFlowAppState extends State<MindFlowApp>
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'MindFlow',
-      theme: AppTheme.dark,
+      theme: PcT.theme,
       debugShowCheckedModeBanner: false,
       home: const SplashScreen(),
     );

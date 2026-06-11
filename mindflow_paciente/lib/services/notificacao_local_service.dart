@@ -12,6 +12,14 @@ class NotificacaoLocalService {
     const settings = InitializationSettings(android: android);
 
     await _plugin.initialize(settings);
+
+    // Android 13+ exige solicitação em runtime — sem isso as notificações
+    // são bloqueadas silenciosamente mesmo com a permissão no manifest.
+    await _plugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestNotificationsPermission();
+
     _iniciado = true;
   }
 

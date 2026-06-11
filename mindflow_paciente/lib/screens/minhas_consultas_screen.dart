@@ -1,27 +1,26 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mindflow_shared/mindflow_shared.dart';
-import 'detalhe_consulta_screen.dart';
+import '../theme/paciente_theme.dart';
 import '../services/consulta_monitor_service.dart';
+import 'detalhe_consulta_screen.dart';
 
 class MinhasConsultasScreen extends StatefulWidget {
-  const MinhasConsultasScreen({super.key});
+  final bool isTab;
+  const MinhasConsultasScreen({super.key, this.isTab = false});
 
   @override
-  State<MinhasConsultasScreen> createState() =>
-      _MinhasConsultasScreenState();
+  State<MinhasConsultasScreen> createState() => _MinhasConsultasScreenState();
 }
 
-class _MinhasConsultasScreenState
-    extends State<MinhasConsultasScreen> {
+class _MinhasConsultasScreenState extends State<MinhasConsultasScreen> {
   List<Map<String, dynamic>> _consultas = [];
-  bool _loading = true;
+  bool    _loading = true;
   String? _erro;
 
   @override
   void initState() {
     super.initState();
-    // Monitor MOM — atualiza lista quando backend processa evento
     ConsultaMonitorService.adicionarListener(_onConsultasAtualizadas);
     ConsultaMonitorService.verificarAgora();
     _carregar();
@@ -33,21 +32,15 @@ class _MinhasConsultasScreenState
     super.dispose();
   }
 
-  void _onConsultasAtualizadas(
-      List<Map<String, dynamic>> consultas) {
+  void _onConsultasAtualizadas(List<Map<String, dynamic>> consultas) {
     if (!mounted) return;
-    final lista = List<Map<String, dynamic>>.from(consultas);
-    lista.sort((a, b) {
-      final da =
-          DateTime.tryParse(a['dataHora'] ?? '') ?? DateTime(0);
-      final db =
-          DateTime.tryParse(b['dataHora'] ?? '') ?? DateTime(0);
-      return db.compareTo(da);
-    });
-    setState(() {
-      _consultas = lista;
-      _loading   = false;
-    });
+    final lista = List<Map<String, dynamic>>.from(consultas)
+      ..sort((a, b) {
+        final da = DateTime.tryParse(a['dataHora'] ?? '') ?? DateTime(0);
+        final db = DateTime.tryParse(b['dataHora'] ?? '') ?? DateTime(0);
+        return db.compareTo(da);
+      });
+    setState(() { _consultas = lista; _loading = false; });
   }
 
   Future<void> _carregar() async {
@@ -55,16 +48,12 @@ class _MinhasConsultasScreenState
     try {
       final res = await ApiClient.get('/consultas/minhas');
       if (res.statusCode == 200) {
-        final lista = (jsonDecode(res.body) as List)
-            .map((e) => e as Map<String, dynamic>)
-            .toList();
-        lista.sort((a, b) {
-          final da =
-              DateTime.tryParse(a['dataHora'] ?? '') ?? DateTime(0);
-          final db =
-              DateTime.tryParse(b['dataHora'] ?? '') ?? DateTime(0);
-          return db.compareTo(da);
-        });
+        final lista = (jsonDecode(res.body) as List).cast<Map<String, dynamic>>()
+          ..sort((a, b) {
+            final da = DateTime.tryParse(a['dataHora'] ?? '') ?? DateTime(0);
+            final db = DateTime.tryParse(b['dataHora'] ?? '') ?? DateTime(0);
+            return db.compareTo(da);
+          });
         setState(() => _consultas = lista);
       } else {
         setState(() => _erro = 'Erro ao carregar consultas');
@@ -76,39 +65,14 @@ class _MinhasConsultasScreenState
     }
   }
 
-  Color _statusColor(String? s) {
-    switch (s) {
-      case 'SOLICITADA':   return Colors.orange;
-      case 'CONFIRMADA':   return AppTheme.success;
-      case 'RECUSADA':
-      case 'CANCELADA':    return AppTheme.error;
-      case 'EM_ANDAMENTO': return AppTheme.secondary;
-      case 'CONCLUIDA':    return AppTheme.primary;
-      default:             return AppTheme.textSecond;
-    }
-  }
-
-  IconData _statusIcon(String? s) {
-    switch (s) {
-      case 'SOLICITADA':   return Icons.schedule_rounded;
-      case 'CONFIRMADA':   return Icons.check_circle_outline;
-      case 'RECUSADA':
-      case 'CANCELADA':    return Icons.cancel_outlined;
-      case 'EM_ANDAMENTO': return Icons.play_circle_outline;
-      case 'CONCLUIDA':    return Icons.task_alt_rounded;
-      default:             return Icons.help_outline;
-    }
-  }
-
   String _formatarDataHora(String? dh) {
     if (dh == null) return '';
     try {
       final dt = DateTime.parse(dh);
-      const dias   = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-      const meses  = ['Jan','Fev','Mar','Abr','Mai','Jun',
-                      'Jul','Ago','Set','Out','Nov','Dez'];
-      return '${dias[dt.weekday % 7]}, ${dt.day} '
-             '${meses[dt.month - 1]} · '
+      const dias  = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+      const meses = ['Jan','Fev','Mar','Abr','Mai','Jun',
+                     'Jul','Ago','Set','Out','Nov','Dez'];
+      return '${dias[dt.weekday % 7]}, ${dt.day} ${meses[dt.month - 1]} · '
              '${dt.hour.toString().padLeft(2,'0')}:'
              '${dt.minute.toString().padLeft(2,'0')}';
     } catch (_) { return dh; }
@@ -117,189 +81,145 @@ class _MinhasConsultasScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: PcT.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppTheme.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Minhas Consultas',
-          style: TextStyle(
-              color: AppTheme.textPrimary,
-              fontWeight: FontWeight.w600),
-        ),
+        title: const Text('Minhas Consultas'),
+        leading: widget.isTab
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                onPressed: () => Navigator.pop(context),
+              ),
+        automaticallyImplyLeading: !widget.isTab,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded,
-                color: AppTheme.textSecond),
+            icon: const Icon(Icons.refresh_rounded),
             onPressed: _carregar,
-            tooltip: 'Atualizar',
+            color: PcT.text2,
           ),
         ],
       ),
       body: _loading
-          ? const Center(
-              child: CircularProgressIndicator(
-                  color: AppTheme.primary))
+          ? const Center(child: CircularProgressIndicator(color: PcT.primary))
           : _erro != null
               ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.error_outline,
-                          color: AppTheme.error, size: 48),
-                      const SizedBox(height: 12),
-                      Text(_erro!,
-                          style: const TextStyle(
-                              color: AppTheme.textSecond)),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _carregar,
-                        child: const Text('Tentar novamente'),
-                      ),
-                    ],
-                  ),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Container(
+                      width: 56, height: 56,
+                      decoration: BoxDecoration(
+                          color: PcT.errorLight,
+                          borderRadius: BorderRadius.circular(16)),
+                      child: const Icon(Icons.error_outline, color: PcT.error, size: 28),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(_erro!, style: const TextStyle(color: PcT.text2)),
+                    const SizedBox(height: 16),
+                    ElevatedButton(onPressed: _carregar,
+                        style: ElevatedButton.styleFrom(minimumSize: const Size(0, 44)),
+                        child: const Text('Tentar novamente')),
+                  ]),
                 )
               : _consultas.isEmpty
                   ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.calendar_today_rounded,
-                              color: AppTheme.textSecond, size: 48),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'Você ainda não tem consultas',
-                            style:
-                                TextStyle(color: AppTheme.textSecond),
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton.icon(
-                            onPressed: () => Navigator.pop(context),
-                            icon: const Icon(Icons.search_rounded),
-                            label:
-                                const Text('Buscar psicólogos'),
-                          ),
-                        ],
-                      ),
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        Container(
+                          width: 64, height: 64,
+                          decoration: BoxDecoration(
+                              color: PcT.surfaceAlt,
+                              borderRadius: BorderRadius.circular(20)),
+                          child: const Icon(Icons.calendar_today_rounded,
+                              color: PcT.text3, size: 28),
+                        ),
+                        const SizedBox(height: 14),
+                        const Text('Você ainda não tem consultas',
+                            style: TextStyle(color: PcT.text2)),
+                      ]),
                     )
                   : RefreshIndicator(
                       onRefresh: _carregar,
-                      color: AppTheme.primary,
+                      color: PcT.primary,
                       child: ListView.builder(
-                        padding: const EdgeInsets.all(20),
+                        padding: const EdgeInsets.all(16),
                         itemCount: _consultas.length,
                         itemBuilder: (_, i) {
-                          final c         = _consultas[i];
-                          final id        = c['id'] as String;
-                          final psicologo =
-                              c['nomePsicologo'] as String? ?? '';
-                          final dh    = c['dataHora'] as String?;
-                          final status = c['status']  as String?;
+                          final c        = _consultas[i];
+                          final id       = c['id']            as String;
+                          final psi      = c['nomePsicologo'] as String? ?? '';
+                          final dh       = c['dataHora']      as String?;
+                          final status   = c['status']        as String?;
 
                           return GestureDetector(
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (_) =>
-                                    DetalheConsultaScreen(
-                                  consultaId: id,
-                                ),
+                                    DetalheConsultaScreen(consultaId: id),
                               ),
                             ).then((_) => _carregar()),
                             child: Container(
-                              margin:
-                                  const EdgeInsets.only(bottom: 14),
-                              decoration: BoxDecoration(
-                                color: AppTheme.surface,
-                                borderRadius:
-                                    BorderRadius.circular(18),
-                                border: Border(
-                                  left: BorderSide(
-                                    color: _statusColor(status),
-                                    width: 3,
+                              margin: const EdgeInsets.only(bottom: 12),
+                              decoration: PcT.cardWith(accent: PcT.statusFg(status)),
+                              child: IntrinsicHeight(
+                                child: Row(children: [
+                                  Container(
+                                    width: 4,
+                                    decoration: BoxDecoration(
+                                      color: PcT.statusFg(status),
+                                      borderRadius: const BorderRadius.only(
+                                        topLeft: Radius.circular(15),
+                                        bottomLeft: Radius.circular(15),
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                  Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(14),
+                                      child: Row(children: [
+                                        Container(
+                                          width: 40, height: 40,
+                                          decoration: BoxDecoration(
+                                            color: PcT.statusBg(status),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            PcT.statusIcon(status),
+                                            color: PcT.statusFg(status),
+                                            size: 20,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(psi,
+                                                  style: const TextStyle(
+                                                      fontWeight: FontWeight.w600,
+                                                      color: PcT.text1,
+                                                      fontSize: 14)),
+                                              const SizedBox(height: 3),
+                                              Text(_formatarDataHora(dh),
+                                                  style: const TextStyle(
+                                                      color: PcT.text2, fontSize: 12)),
+                                            ],
+                                          ),
+                                        ),
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.end,
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            PcT.statusChip(status),
+                                            const SizedBox(height: 6),
+                                            const Icon(Icons.arrow_forward_ios_rounded,
+                                                color: PcT.text3, size: 12),
+                                          ],
+                                        ),
+                                      ]),
+                                    ),
+                                  ),
+                                ]),
                               ),
-                              padding: const EdgeInsets.all(18),
-                              child: Row(children: [
-                                Container(
-                                  width: 44,
-                                  height: 44,
-                                  decoration: BoxDecoration(
-                                    color: _statusColor(status)
-                                        .withOpacity(0.12),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    _statusIcon(status),
-                                    color: _statusColor(status),
-                                    size: 22,
-                                  ),
-                                ),
-                                const SizedBox(width: 14),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        psicologo,
-                                        style: const TextStyle(
-                                            fontWeight:
-                                                FontWeight.w600,
-                                            color:
-                                                AppTheme.textPrimary,
-                                            fontSize: 15),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        _formatarDataHora(dh),
-                                        style: const TextStyle(
-                                            color:
-                                                AppTheme.textSecond,
-                                            fontSize: 13),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.end,
-                                  children: [
-                                    Container(
-                                      padding:
-                                          const EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                              vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: _statusColor(status)
-                                            .withOpacity(0.12),
-                                        borderRadius:
-                                            BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                        status ?? '',
-                                        style: TextStyle(
-                                            color:
-                                                _statusColor(status),
-                                            fontSize: 11,
-                                            fontWeight:
-                                                FontWeight.w600),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    const Icon(
-                                      Icons.arrow_forward_ios_rounded,
-                                      color: AppTheme.textSecond,
-                                      size: 14,
-                                    ),
-                                  ],
-                                ),
-                              ]),
                             ),
                           );
                         },
