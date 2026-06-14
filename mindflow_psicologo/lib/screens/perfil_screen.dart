@@ -2,25 +2,33 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mindflow_shared/mindflow_shared.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../theme/psicologo_theme.dart';
 import 'login_screen.dart';
+import 'disponibilidade_screen.dart';
 
 class PerfilScreen extends StatefulWidget {
-  const PerfilScreen({super.key});
+  final bool isTab;
+  final VoidCallback? onNomeAtualizado;
+
+  const PerfilScreen({
+    super.key,
+    this.isTab = false,
+    this.onNomeAtualizado,
+  });
 
   @override
   State<PerfilScreen> createState() => _PerfilScreenState();
 }
 
 class _PerfilScreenState extends State<PerfilScreen> {
-  String _nome   = '';
-  String _email  = '';
-  bool   _loading = true;
+  String _nome  = '';
+  String _email = '';
+  bool   _loading  = true;
+  bool   _editando = false;
+  bool   _salvando = false;
   String? _erro;
 
-  // Campos editáveis
   final _nomeCtrl = TextEditingController();
-  bool _editando  = false;
-  bool _salvando  = false;
 
   @override
   void initState() {
@@ -38,11 +46,10 @@ class _PerfilScreenState extends State<PerfilScreen> {
           _email = data['email'] as String;
           _nomeCtrl.text = _nome;
         });
-        // Atualiza SharedPreferences
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('nome', _nome);
       }
-    } catch (e) {
+    } catch (_) {
       setState(() => _erro = 'Erro ao carregar perfil');
     } finally {
       setState(() => _loading = false);
@@ -54,28 +61,25 @@ class _PerfilScreenState extends State<PerfilScreen> {
     setState(() => _salvando = true);
     try {
       final res = await ApiClient.put(
-        '/usuarios/me',
-        {'nome': _nomeCtrl.text.trim()},
-      );
+          '/usuarios/me', {'nome': _nomeCtrl.text.trim()});
       if (res.statusCode == 200) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('nome', _nomeCtrl.text.trim());
         setState(() {
-          _nome     = _nomeCtrl.text.trim();
+          _nome    = _nomeCtrl.text.trim();
           _editando = false;
         });
+        widget.onNomeAtualizado?.call();
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Nome atualizado!'),
-            backgroundColor: AppTheme.success,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Nome atualizado!'),
+          backgroundColor: PT.success,
+        ));
       }
-    } catch (e) {
+    } catch (_) {
       setState(() => _erro = 'Erro ao salvar');
     } finally {
-      setState(() => _salvando = false);
+      if (mounted) setState(() => _salvando = false);
     }
   }
 
@@ -83,21 +87,17 @@ class _PerfilScreenState extends State<PerfilScreen> {
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: AppTheme.surface,
-        title: const Text('Sair',
-            style: TextStyle(color: AppTheme.textPrimary)),
-        content: const Text('Deseja sair da sua conta?',
-            style: TextStyle(color: AppTheme.textSecond)),
+        title: const Text('Sair da conta'),
+        content: const Text('Deseja encerrar a sessão?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar',
-                style: TextStyle(color: AppTheme.textSecond)),
+            child: const Text('Cancelar'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Sair',
-                style: TextStyle(color: AppTheme.error)),
+            style: TextButton.styleFrom(foregroundColor: PT.error),
+            child: const Text('Sair'),
           ),
         ],
       ),
@@ -121,88 +121,99 @@ class _PerfilScreenState extends State<PerfilScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: PT.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppTheme.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text('Meu Perfil',
-            style: TextStyle(
-                color: AppTheme.textPrimary,
-                fontWeight: FontWeight.w600)),
+        title: const Text('Meu Perfil'),
+        leading: widget.isTab
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                onPressed: () => Navigator.pop(context),
+              ),
+        automaticallyImplyLeading: !widget.isTab,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout_rounded,
-                color: AppTheme.error),
+            icon: const Icon(Icons.logout_rounded),
             onPressed: _logout,
+            color: PT.error,
             tooltip: 'Sair',
           ),
         ],
       ),
       body: _loading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppTheme.primary))
+          ? const Center(child: CircularProgressIndicator(color: PT.primary))
           : SafeArea(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   children: [
-                    // Avatar grande
+                    // Card de perfil
                     Container(
-                      width: 96,
-                      height: 96,
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withOpacity(0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Text(
-                          _nome.isNotEmpty
-                              ? _nome[0].toUpperCase() : '?',
-                          style: const TextStyle(
-                              fontSize: 40,
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.primary),
-                        ),
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(24),
+                      decoration: PT.card,
+                      child: Column(
+                        children: [
+                          // Avatar grande
+                          Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              color: PT.primaryLight,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                  color: PT.primary.withOpacity(0.2),
+                                  width: 2),
+                            ),
+                            child: Center(
+                              child: Text(
+                                _nome.isNotEmpty
+                                    ? _nome[0].toUpperCase()
+                                    : '?',
+                                style: const TextStyle(
+                                    fontSize: 34,
+                                    fontWeight: FontWeight.w700,
+                                    color: PT.primary),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Text(_nome,
+                              style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
+                                  color: PT.text1)),
+                          const SizedBox(height: 4),
+                          Text(_email,
+                              style: const TextStyle(
+                                  color: PT.text2, fontSize: 13)),
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: PT.primaryLight,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Text(
+                              'Psicólogo',
+                              style: TextStyle(
+                                  color: PT.primary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+
                     const SizedBox(height: 16),
-                    Text(_nome,
-                        style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.textPrimary)),
-                    const SizedBox(height: 4),
-                    Text(_email,
-                        style: const TextStyle(
-                            color: AppTheme.textSecond, fontSize: 14)),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Text('PSICOLOGO',
-                          style: TextStyle(
-                              color: AppTheme.secondary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600)),
-                    ),
 
-                    const SizedBox(height: 36),
-
-                    // Card editar nome
+                    // Card dados pessoais
                     Container(
+                      width: double.infinity,
                       padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: AppTheme.surface,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
+                      decoration: PT.card,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -213,78 +224,107 @@ class _PerfilScreenState extends State<PerfilScreen> {
                               const Text('Dados pessoais',
                                   style: TextStyle(
                                       fontWeight: FontWeight.w600,
-                                      color: AppTheme.textPrimary)),
-                              GestureDetector(
-                                onTap: () => setState(
-                                    () => _editando = !_editando),
-                                child: Text(
-                                  _editando ? 'Cancelar' : 'Editar',
-                                  style: const TextStyle(
-                                      color: AppTheme.primary,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500),
-                                ),
+                                      color: PT.text1,
+                                      fontSize: 15)),
+                              TextButton(
+                                onPressed: () =>
+                                    setState(() => _editando = !_editando),
+                                child: Text(_editando ? 'Cancelar' : 'Editar'),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
                           if (_editando) ...[
                             TextFormField(
                               controller: _nomeCtrl,
-                              style: const TextStyle(
-                                  color: AppTheme.textPrimary),
                               decoration: const InputDecoration(
                                 labelText: 'Nome',
-                                prefixIcon: Icon(Icons.person_outline,
-                                    color: AppTheme.textSecond),
+                                prefixIcon: Icon(Icons.person_outline),
                               ),
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 14),
                             ElevatedButton(
                               onPressed: _salvando ? null : _salvarNome,
                               child: _salvando
                                   ? const SizedBox(
-                                      width: 20, height: 20,
+                                      width: 20,
+                                      height: 20,
                                       child: CircularProgressIndicator(
                                           strokeWidth: 2,
                                           color: Colors.white))
                                   : const Text('Salvar alterações'),
                             ),
                           ] else ...[
-                            _infoRow(Icons.person_outline, 'Nome', _nome),
-                            const SizedBox(height: 12),
-                            _infoRow(Icons.email_outlined, 'E-mail',
+                            PT.infoRow(
+                                Icons.person_outline, 'Nome', _nome),
+                            const SizedBox(height: 14),
+                            const Divider(height: 1),
+                            const SizedBox(height: 14),
+                            PT.infoRow(Icons.email_outlined, 'E-mail',
                                 _email),
                           ],
                         ],
                       ),
                     ),
 
+                    const SizedBox(height: 16),
+
+                    // Atalho para disponibilidade
+                    GestureDetector(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const DisponibilidadeScreen()),
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: PT.card,
+                        child: Row(children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFECFDF5),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.tune_rounded,
+                                color: PT.success, size: 20),
+                          ),
+                          const SizedBox(width: 14),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              children: [
+                                Text('Minha disponibilidade',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: PT.text1,
+                                        fontSize: 14)),
+                                SizedBox(height: 2),
+                                Text('Gerenciar horários de atendimento',
+                                    style: TextStyle(
+                                        color: PT.text2, fontSize: 12)),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.arrow_forward_ios_rounded,
+                              size: 14, color: PT.text3),
+                        ]),
+                      ),
+                    ),
+
                     if (_erro != null) ...[
                       const SizedBox(height: 12),
                       Text(_erro!,
-                          style: const TextStyle(color: AppTheme.error)),
+                          style: const TextStyle(color: PT.error)),
                     ],
+
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
             ),
     );
-  }
-
-  Widget _infoRow(IconData icon, String label, String valor) {
-    return Row(children: [
-      Icon(icon, color: AppTheme.textSecond, size: 18),
-      const SizedBox(width: 12),
-      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label,
-            style: const TextStyle(
-                color: AppTheme.textSecond, fontSize: 11)),
-        Text(valor,
-            style: const TextStyle(
-                color: AppTheme.textPrimary,
-                fontWeight: FontWeight.w500)),
-      ]),
-    ]);
   }
 }

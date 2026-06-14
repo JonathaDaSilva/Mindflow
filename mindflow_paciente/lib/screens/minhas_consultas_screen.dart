@@ -22,7 +22,9 @@ class _MinhasConsultasScreenState extends State<MinhasConsultasScreen> {
   void initState() {
     super.initState();
     ConsultaMonitorService.adicionarListener(_onConsultasAtualizadas);
-    ConsultaMonitorService.verificarAgora();
+    // Uma única chamada: o monitor notifica via _onConsultasAtualizadas quando
+    // terminar. _carregar() faz a requisição direta em paralelo para garantir
+    // que o loading seja exibido imediatamente mesmo se o monitor demorar.
     _carregar();
   }
 
@@ -40,6 +42,9 @@ class _MinhasConsultasScreenState extends State<MinhasConsultasScreen> {
         final db = DateTime.tryParse(b['dataHora'] ?? '') ?? DateTime(0);
         return db.compareTo(da);
       });
+    for (final c in lista) {
+      c['_dh'] = _fmt(c['dataHora'] as String?);
+    }
     setState(() { _consultas = lista; _loading = false; });
   }
 
@@ -48,24 +53,28 @@ class _MinhasConsultasScreenState extends State<MinhasConsultasScreen> {
     try {
       final res = await ApiClient.get('/consultas/minhas');
       if (res.statusCode == 200) {
-        final lista = (jsonDecode(res.body) as List).cast<Map<String, dynamic>>()
-          ..sort((a, b) {
-            final da = DateTime.tryParse(a['dataHora'] ?? '') ?? DateTime(0);
-            final db = DateTime.tryParse(b['dataHora'] ?? '') ?? DateTime(0);
-            return db.compareTo(da);
-          });
-        setState(() => _consultas = lista);
+        final lista = (jsonDecode(res.body) as List)
+            .cast<Map<String, dynamic>>()
+            ..sort((a, b) {
+              final da = DateTime.tryParse(a['dataHora'] ?? '') ?? DateTime(0);
+              final db = DateTime.tryParse(b['dataHora'] ?? '') ?? DateTime(0);
+              return db.compareTo(da);
+            });
+        // Pré-computa a data formatada uma vez na carga, não em cada rebuild
+        for (final c in lista) {
+          c['_dh'] = _fmt(c['dataHora'] as String?);
+        }
+        setState(() { _consultas = lista; _loading = false; _erro = null; });
       } else {
-        setState(() => _erro = 'Erro ao carregar consultas');
+        setState(() { _erro = 'Erro ao carregar consultas'; _loading = false; });
       }
     } catch (_) {
-      setState(() => _erro = 'Verifique sua conexão');
-    } finally {
-      setState(() => _loading = false);
+      setState(() { _erro = 'Verifique sua conexão'; _loading = false; });
     }
   }
 
-  String _formatarDataHora(String? dh) {
+  // Pré-computado em _carregar() e guardado em c['_dh'] — não é chamado no build
+  static String _fmt(String? dh) {
     if (dh == null) return '';
     try {
       final dt = DateTime.parse(dh);
@@ -143,80 +152,86 @@ class _MinhasConsultasScreenState extends State<MinhasConsultasScreen> {
                         itemCount: _consultas.length,
                         itemBuilder: (_, i) {
                           final c        = _consultas[i];
-                          final id       = c['id']            as String;
-                          final psi      = c['nomePsicologo'] as String? ?? '';
-                          final dh       = c['dataHora']      as String?;
-                          final status   = c['status']        as String?;
+                          final id     = c['id']            as String;
+                          final psi    = c['nomePsicologo'] as String? ?? '';
+                          final dhFmt  = c['_dh']           as String? ?? '';
+                          final status = c['status']        as String?;
 
-                          return GestureDetector(
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    DetalheConsultaScreen(consultaId: id),
-                              ),
-                            ).then((_) => _carregar()),
-                            child: Container(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              decoration: PcT.cardWith(accent: PcT.statusFg(status)),
-                              child: IntrinsicHeight(
-                                child: Row(children: [
-                                  Container(
-                                    width: 4,
-                                    decoration: BoxDecoration(
+                          return RepaintBoundary(
+                            child: GestureDetector(
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      DetalheConsultaScreen(consultaId: id),
+                                ),
+                              ).then((_) => _carregar()),
+                              // Stack substitui IntrinsicHeight + Row(strip + content):
+                              // a faixa colorida fica via Positioned.fill sem custo de
+                              // layout em dois passos.
+                              child: Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                decoration: PcT.card,
+                                clipBehavior: Clip.hardEdge,
+                                child: Stack(children: [
+                                  // Faixa lateral de status
+                                  Positioned(
+                                    left: 0, top: 0, bottom: 0,
+                                    child: Container(
+                                      width: 4,
                                       color: PcT.statusFg(status),
-                                      borderRadius: const BorderRadius.only(
-                                        topLeft: Radius.circular(15),
-                                        bottomLeft: Radius.circular(15),
-                                      ),
                                     ),
                                   ),
-                                  Expanded(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(14),
-                                      child: Row(children: [
-                                        Container(
-                                          width: 40, height: 40,
-                                          decoration: BoxDecoration(
-                                            color: PcT.statusBg(status),
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Icon(
-                                            PcT.statusIcon(status),
-                                            color: PcT.statusFg(status),
-                                            size: 20,
-                                          ),
+                                  // Conteúdo
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(18, 14, 14, 14),
+                                    child: Row(children: [
+                                      Container(
+                                        width: 40, height: 40,
+                                        decoration: BoxDecoration(
+                                          color: PcT.statusBg(status),
+                                          shape: BoxShape.circle,
                                         ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(psi,
-                                                  style: const TextStyle(
-                                                      fontWeight: FontWeight.w600,
-                                                      color: PcT.text1,
-                                                      fontSize: 14)),
-                                              const SizedBox(height: 3),
-                                              Text(_formatarDataHora(dh),
-                                                  style: const TextStyle(
-                                                      color: PcT.text2, fontSize: 12)),
-                                            ],
-                                          ),
+                                        child: Icon(
+                                          PcT.statusIcon(status),
+                                          color: PcT.statusFg(status),
+                                          size: 20,
                                         ),
-                                        Column(
-                                          crossAxisAlignment: CrossAxisAlignment.end,
-                                          mainAxisAlignment: MainAxisAlignment.center,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
-                                            PcT.statusChip(status),
-                                            const SizedBox(height: 6),
-                                            const Icon(Icons.arrow_forward_ios_rounded,
-                                                color: PcT.text3, size: 12),
+                                            Text(psi,
+                                                style: const TextStyle(
+                                                    fontWeight: FontWeight.w600,
+                                                    color: PcT.text1,
+                                                    fontSize: 14)),
+                                            const SizedBox(height: 3),
+                                            Text(dhFmt,
+                                                style: const TextStyle(
+                                                    color: PcT.text2,
+                                                    fontSize: 12)),
                                           ],
                                         ),
-                                      ]),
-                                    ),
+                                      ),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          PcT.statusChip(status),
+                                          const SizedBox(height: 6),
+                                          const Icon(
+                                              Icons.arrow_forward_ios_rounded,
+                                              color: PcT.text3,
+                                              size: 12),
+                                        ],
+                                      ),
+                                    ]),
                                   ),
                                 ]),
                               ),

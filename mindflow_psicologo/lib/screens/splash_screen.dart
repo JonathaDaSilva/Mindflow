@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mindflow_shared/mindflow_shared.dart';
+import '../theme/psicologo_theme.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
 
@@ -14,24 +15,24 @@ class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
   late Animation<double> _fade;
-  late Animation<double> _scale;
+  late Animation<double> _slide;
 
   @override
   void initState() {
     super.initState();
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 900),
     );
-    _fade  = CurvedAnimation(parent: _ctrl, curve: Curves.easeIn);
-    _scale = Tween<double>(begin: 0.8, end: 1.0).animate(
-        CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut));
+    _fade = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
+    _slide = Tween<double>(begin: 16, end: 0).animate(
+        CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
     _ctrl.forward();
     _navegar();
   }
 
   Future<void> _navegar() async {
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(milliseconds: 1800));
     if (!mounted) return;
     final logado = await AuthService.isLogado();
     if (!mounted) return;
@@ -52,45 +53,64 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: PT.surface,
       body: Center(
         child: FadeTransition(
           opacity: _fade,
-          child: ScaleTransition(
-            scale: _scale,
+          child: AnimatedBuilder(
+            animation: _slide,
+            builder: (_, child) => Transform.translate(
+              offset: Offset(0, _slide.value),
+              child: child,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 96,
-                  height: 96,
+                  width: 80,
+                  height: 80,
                   decoration: BoxDecoration(
-                    color: AppTheme.secondary.withOpacity(0.15),
-                    shape: BoxShape.circle,
+                    color: PT.primaryLight,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                        color: PT.primary.withOpacity(0.15), width: 1),
                   ),
-                  child: const Icon(
-                    Icons.medical_services_rounded,
-                    size: 52,
-                    color: AppTheme.secondary,
-                  ),
+                  child: const Icon(Icons.psychology_rounded,
+                      size: 44, color: PT.primary),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 const Text(
                   'MindFlow',
                   style: TextStyle(
-                    fontSize: 36,
+                    fontSize: 30,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.textPrimary,
+                    color: PT.text1,
                     letterSpacing: -0.5,
                   ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Área do Profissional',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppTheme.secondary,
-                    fontWeight: FontWeight.w500,
+                const SizedBox(height: 6),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: PT.primaryLight,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'Área do Profissional',
+                    style: TextStyle(
+                        color: PT.primary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const SizedBox(height: 48),
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: PT.primary.withOpacity(0.35),
                   ),
                 ),
               ],

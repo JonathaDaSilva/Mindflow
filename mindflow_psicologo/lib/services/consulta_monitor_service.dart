@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:mindflow_shared/mindflow_shared.dart';
 import 'notificacao_local_service.dart';
 
@@ -29,7 +30,7 @@ class ConsultaMonitorService {
   // ─────────────────────────────────────────────────────────────────────────
 
   static void iniciar() {
-    _conectarSSE();
+    if (!kIsWeb) _conectarSSE(); // SSE não funciona no browser via http package
     _iniciarPoll();
   }
 

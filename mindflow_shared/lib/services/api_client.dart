@@ -1,37 +1,40 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiClient {
-  // Em emulador Android → 10.0.2.2 = localhost da máquina
-  // Em dispositivo físico → troque pelo IP da sua máquina na rede Wi-Fi
-  static const String baseUrl = 'http://10.0.2.2:8080/api';
+  // Web (Chrome) usa localhost; emulador Android usa 10.0.2.2
+  static String get baseUrl =>
+      kIsWeb ? 'http://localhost:8080/api' : 'http://10.0.2.2:8080/api';
 
   static const Duration _timeout = Duration(seconds: 15);
-
-  // ── Token ─────────────────────────────────────────────────────────────────
 
   static Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('token');
   }
 
-  // ── Headers padrão ────────────────────────────────────────────────────────
-
   static Future<Map<String, String>> _headers() async {
     final token = await _getToken();
-    final h = <String, String>{
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
-    if (token != null && token.isNotEmpty) {
-      h['Authorization'] = 'Bearer $token';
-    }
-    return h;
+    final headers = <String, String>{'Content-Type': 'application/json'};
+    if (token != null) headers['Authorization'] = 'Bearer $token';
+    return headers;
   }
 
-  // ── REST ──────────────────────────────────────────────────────────────────
+  static Future<http.Response> post(
+    String path,
+    Map<String, dynamic> body,
+  ) async {
+    return http
+        .post(
+          Uri.parse('$baseUrl$path'),
+          headers: await _headers(),
+          body: jsonEncode(body),
+        )
+        .timeout(_timeout);
+  }
 
   static Future<http.Response> get(String path) async {
     return http
@@ -39,27 +42,29 @@ class ApiClient {
         .timeout(_timeout);
   }
 
-  static Future<http.Response> post(
-      String path, Map<String, dynamic> body) async {
-    return http
-        .post(Uri.parse('$baseUrl$path'),
-            headers: await _headers(), body: jsonEncode(body))
-        .timeout(_timeout);
-  }
-
   static Future<http.Response> put(
-      String path, Map<String, dynamic> body) async {
+    String path,
+    Map<String, dynamic> body,
+  ) async {
     return http
-        .put(Uri.parse('$baseUrl$path'),
-            headers: await _headers(), body: jsonEncode(body))
+        .put(
+          Uri.parse('$baseUrl$path'),
+          headers: await _headers(),
+          body: jsonEncode(body),
+        )
         .timeout(_timeout);
   }
 
   static Future<http.Response> patch(
-      String path, Map<String, dynamic> body) async {
+    String path,
+    Map<String, dynamic> body,
+  ) async {
     return http
-        .patch(Uri.parse('$baseUrl$path'),
-            headers: await _headers(), body: jsonEncode(body))
+        .patch(
+          Uri.parse('$baseUrl$path'),
+          headers: await _headers(),
+          body: jsonEncode(body),
+        )
         .timeout(_timeout);
   }
 
@@ -70,15 +75,7 @@ class ApiClient {
   }
 
   // ── SSE — Server-Sent Events ──────────────────────────────────────────────
-  //
-  // O backend Spring publica neste stream sempre que o consumer RabbitMQ
-  // processa um evento. O Flutter recebe as linhas em tempo real sem
-  // precisar de WebSocket ou biblioteca extra.
-  //
-  // Uso:
-  //   final stream = await ApiClient.sseStream('/notificacoes/stream');
-  //   stream.listen((linha) { ... });
-  //
+  // Usado pelo ConsultaMonitorService para receber notificações em tempo real.
   static Future<Stream<String>> sseStream(String path) async {
     final headers = await _headers();
     headers['Accept'] = 'text/event-stream';

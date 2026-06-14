@@ -29,8 +29,14 @@ class _ConsultasScreenState extends State<ConsultasScreen>
   Future<void> _carregar() async {
     setState(() => _loading = true);
     try {
-      final r1 = await ApiClient.get('/consultas/pendentes');
-      final r2 = await ApiClient.get('/consultas/agenda');
+      // Dispara as duas requisições em paralelo
+      final results = await Future.wait([
+        ApiClient.get('/consultas/pendentes'),
+        ApiClient.get('/consultas/agenda'),
+      ]);
+      final r1 = results[0];
+      final r2 = results[1];
+      // Um único setState cobre loading + dados — evita rebuild duplo
       setState(() {
         _pendentes = r1.statusCode == 200
             ? (jsonDecode(r1.body) as List).cast<Map<String, dynamic>>()
@@ -38,9 +44,9 @@ class _ConsultasScreenState extends State<ConsultasScreen>
         _todas = r2.statusCode == 200
             ? (jsonDecode(r2.body) as List).cast<Map<String, dynamic>>()
             : [];
+        _loading = false;
       });
     } catch (_) {
-    } finally {
       setState(() => _loading = false);
     }
   }
@@ -279,7 +285,8 @@ class _ListaConsultas extends StatelessWidget {
           final obs      = c['observacao']  as String?;
           final link     = c['linkConsulta'] as String?;
 
-          return Container(
+          return RepaintBoundary(
+            child: Container(
             margin: const EdgeInsets.only(bottom: 12),
             decoration: PT.card,
             padding: const EdgeInsets.all(16),
@@ -392,7 +399,7 @@ class _ListaConsultas extends StatelessWidget {
                 ],
               ],
             ),
-          );
+          )); // RepaintBoundary
         },
       ),
     );
