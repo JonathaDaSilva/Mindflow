@@ -2,9 +2,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:mindflow_shared/mindflow_shared.dart';
+import '../theme/psicologo_theme.dart';
 
 class AgendaScreen extends StatefulWidget {
-  const AgendaScreen({super.key});
+  final bool isTab;
+
+  const AgendaScreen({super.key, this.isTab = false});
 
   @override
   State<AgendaScreen> createState() => _AgendaScreenState();
@@ -27,8 +30,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
       final res = await ApiClient.get('/consultas/agenda');
       if (res.statusCode == 200) {
         final lista = (jsonDecode(res.body) as List)
-            .map((e) => e as Map<String, dynamic>)
-            .toList();
+            .cast<Map<String, dynamic>>();
 
         final Map<DateTime, List<Map<String, dynamic>>> mapa = {};
         for (final c in lista) {
@@ -40,8 +42,8 @@ class _AgendaScreenState extends State<AgendaScreen> {
         }
         setState(() => _eventos = mapa);
       }
-    } catch (_) {}
-    finally {
+    } catch (_) {
+    } finally {
       setState(() => _loading = false);
     }
   }
@@ -53,19 +55,9 @@ class _AgendaScreenState extends State<AgendaScreen> {
     if (dh == null) return '';
     try {
       final dt = DateTime.parse(dh);
-      return '${dt.hour.toString().padLeft(2,'0')}:${dt.minute.toString().padLeft(2,'0')}';
-    } catch (_) { return ''; }
-  }
-
-  Color _statusColor(String? s) {
-    switch (s) {
-      case 'SOLICITADA':    return Colors.orange;
-      case 'CONFIRMADA':    return AppTheme.success;
-      case 'RECUSADA':
-      case 'CANCELADA':     return AppTheme.error;
-      case 'EM_ANDAMENTO':  return AppTheme.secondary;
-      case 'CONCLUIDA':     return AppTheme.primary;
-      default:              return AppTheme.textSecond;
+      return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return '';
     }
   }
 
@@ -74,105 +66,116 @@ class _AgendaScreenState extends State<AgendaScreen> {
     final eventosHoje = _eventosNoDia(_selecionado);
 
     return Scaffold(
+      backgroundColor: PT.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppTheme.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text('Minha Agenda',
-            style: TextStyle(
-                color: AppTheme.textPrimary,
-                fontWeight: FontWeight.w600)),
+        title: const Text('Minha Agenda'),
+        leading: widget.isTab
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                onPressed: () => Navigator.pop(context),
+              ),
+        automaticallyImplyLeading: !widget.isTab,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded,
-                color: AppTheme.textSecond),
+            icon: const Icon(Icons.refresh_rounded),
             onPressed: _carregar,
+            color: PT.text2,
           ),
         ],
       ),
       body: _loading
-          ? const Center(
-              child: CircularProgressIndicator(
-                  color: AppTheme.secondary))
+          ? const Center(child: CircularProgressIndicator(color: PT.primary))
           : NestedScrollView(
-              // ← substitui Column, resolve o overflow
               headerSliverBuilder: (_, __) => [
                 SliverToBoxAdapter(
-                  child: TableCalendar(
-                    locale: 'pt_BR',
-                    firstDay: DateTime.now()
-                        .subtract(const Duration(days: 365)),
-                    lastDay: DateTime.now()
-                        .add(const Duration(days: 365)),
-                    focusedDay: _focado,
-                    selectedDayPredicate: (d) =>
-                        isSameDay(_selecionado, d),
-                    eventLoader: _eventosNoDia,
-                    calendarFormat: CalendarFormat.month,
-                    startingDayOfWeek: StartingDayOfWeek.monday,
-                    onDaySelected: (sel, foc) => setState(() {
-                      _selecionado = sel;
-                      _focado      = foc;
-                    }),
-                    calendarStyle: CalendarStyle(
-                      outsideDaysVisible: false,
-                      defaultTextStyle: const TextStyle(
-                          color: AppTheme.textPrimary),
-                      weekendTextStyle: const TextStyle(
-                          color: AppTheme.textSecond),
-                      selectedDecoration: const BoxDecoration(
-                        color: AppTheme.secondary,
-                        shape: BoxShape.circle,
+                  child: Container(
+                    color: PT.surface,
+                    child: TableCalendar(
+                      locale: 'pt_BR',
+                      firstDay:
+                          DateTime.now().subtract(const Duration(days: 365)),
+                      lastDay:
+                          DateTime.now().add(const Duration(days: 365)),
+                      focusedDay: _focado,
+                      selectedDayPredicate: (d) =>
+                          isSameDay(_selecionado, d),
+                      eventLoader: _eventosNoDia,
+                      calendarFormat: CalendarFormat.month,
+                      startingDayOfWeek: StartingDayOfWeek.monday,
+                      onDaySelected: (sel, foc) => setState(() {
+                        _selecionado = sel;
+                        _focado      = foc;
+                      }),
+                      calendarStyle: CalendarStyle(
+                        outsideDaysVisible: false,
+                        defaultTextStyle:
+                            const TextStyle(color: PT.text1, fontSize: 13),
+                        weekendTextStyle:
+                            const TextStyle(color: PT.text2, fontSize: 13),
+                        todayTextStyle: const TextStyle(
+                            color: PT.primary, fontWeight: FontWeight.w700, fontSize: 13),
+                        selectedTextStyle: const TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
+                        selectedDecoration: const BoxDecoration(
+                          color: PT.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        todayDecoration: BoxDecoration(
+                          color: PT.primaryLight,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: PT.primary, width: 1.5),
+                        ),
+                        markerDecoration: const BoxDecoration(
+                          color: PT.accent,
+                          shape: BoxShape.circle,
+                        ),
+                        markerSize: 5,
+                        outsideTextStyle:
+                            const TextStyle(color: PT.text3, fontSize: 13),
                       ),
-                      todayDecoration: BoxDecoration(
-                        color: AppTheme.secondary.withOpacity(0.3),
-                        shape: BoxShape.circle,
+                      headerStyle: const HeaderStyle(
+                        formatButtonVisible: false,
+                        titleCentered: true,
+                        titleTextStyle: TextStyle(
+                            color: PT.text1,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15),
+                        leftChevronIcon:
+                            Icon(Icons.chevron_left, color: PT.text2),
+                        rightChevronIcon:
+                            Icon(Icons.chevron_right, color: PT.text2),
+                        headerPadding:
+                            EdgeInsets.symmetric(vertical: 12),
                       ),
-                      markerDecoration: const BoxDecoration(
-                        color: AppTheme.primary,
-                        shape: BoxShape.circle,
+                      daysOfWeekStyle: const DaysOfWeekStyle(
+                        weekdayStyle: TextStyle(
+                            color: PT.text2,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500),
+                        weekendStyle: TextStyle(
+                            color: PT.text3,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500),
                       ),
-                    ),
-                    headerStyle: const HeaderStyle(
-                      formatButtonVisible: false,
-                      titleCentered: true,
-                      titleTextStyle: TextStyle(
-                          color: AppTheme.textPrimary,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16),
-                      leftChevronIcon: Icon(Icons.chevron_left,
-                          color: AppTheme.textSecond),
-                      rightChevronIcon: Icon(Icons.chevron_right,
-                          color: AppTheme.textSecond),
-                    ),
-                    daysOfWeekStyle: const DaysOfWeekStyle(
-                      weekdayStyle: TextStyle(
-                          color: AppTheme.textSecond, fontSize: 12),
-                      weekendStyle: TextStyle(
-                          color: AppTheme.textSecond, fontSize: 12),
                     ),
                   ),
                 ),
-                const SliverToBoxAdapter(
-                  child: Divider(
-                      color: AppTheme.surfaceAlt, height: 1),
-                ),
                 SliverToBoxAdapter(
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                    child: Text(
-                      eventosHoje.isEmpty
-                          ? 'Nenhuma consulta neste dia'
-                          : '${eventosHoje.length} consulta${eventosHoje.length > 1 ? 's' : ''} agendada${eventosHoje.length > 1 ? 's' : ''}',
-                      style: const TextStyle(
-                          color: AppTheme.textSecond,
-                          fontSize: 13),
-                    ),
+                  child: Container(
+                    color: PT.background,
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                    child: Row(children: [
+                      Text(
+                        eventosHoje.isEmpty
+                            ? 'Nenhuma consulta neste dia'
+                            : '${eventosHoje.length} consulta${eventosHoje.length > 1 ? 's' : ''}',
+                        style: const TextStyle(
+                            color: PT.text2,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500),
+                      ),
+                    ]),
                   ),
                 ),
               ],
@@ -181,19 +184,27 @@ class _AgendaScreenState extends State<AgendaScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.event_available_rounded,
-                              color: AppTheme.textSecond, size: 40),
-                          const SizedBox(height: 10),
+                          Container(
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              color: PT.surfaceAlt,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Icon(Icons.event_available_rounded,
+                                color: PT.text3, size: 26),
+                          ),
+                          const SizedBox(height: 12),
                           Text(
-                            'Livre em ${_selecionado.day}/${_selecionado.month}/${_selecionado.year}',
+                            'Dia livre — ${_selecionado.day}/${_selecionado.month}',
                             style: const TextStyle(
-                                color: AppTheme.textSecond),
+                                color: PT.text2, fontSize: 14),
                           ),
                         ],
                       ),
                     )
                   : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
                       itemCount: eventosHoje.length,
                       itemBuilder: (_, i) {
                         final c        = eventosHoje[i];
@@ -203,74 +214,69 @@ class _AgendaScreenState extends State<AgendaScreen> {
                         final obs      = c['observacao'] as String?;
 
                         return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          decoration: BoxDecoration(
-                            color: AppTheme.surface,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border(
-                              left: BorderSide(
-                                  color: _statusColor(status),
-                                  width: 3),
-                            ),
+                          margin: const EdgeInsets.only(bottom: 10),
+                          decoration: PT.cardWith(
+                            accent: PT.statusFg(status),
                           ),
-                          padding: const EdgeInsets.all(16),
-                          child: Row(children: [
-                            SizedBox(
-                              width: 52,
-                              child: Text(hora,
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                      color: AppTheme.secondary,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 16)),
-                            ),
-                            const SizedBox(width: 12),
-                            Container(
-                                width: 1,
-                                height: 40,
-                                color: AppTheme.surfaceAlt),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                children: [
-                                  Text(paciente,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          color: AppTheme.textPrimary)),
-                                  const SizedBox(height: 4),
-                                  Row(children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: _statusColor(status)
-                                            .withOpacity(0.12),
-                                        borderRadius:
-                                            BorderRadius.circular(8),
-                                      ),
+                          child: IntrinsicHeight(
+                            child: Row(children: [
+                              // Barra colorida lateral
+                              Container(
+                                width: 4,
+                                decoration: BoxDecoration(
+                                  color: PT.statusFg(status),
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(15),
+                                    bottomLeft: Radius.circular(15),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(14),
+                                  child: Row(children: [
+                                    // Hora
+                                    SizedBox(
+                                      width: 46,
                                       child: Text(
-                                        status ?? '',
+                                        hora,
                                         style: TextStyle(
-                                            color: _statusColor(status),
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600),
+                                            color: PT.statusFg(status),
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 15),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    // Info
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(paciente,
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                  color: PT.text1,
+                                                  fontSize: 14)),
+                                          const SizedBox(height: 4),
+                                          PT.statusChip(status),
+                                          if (obs != null &&
+                                              obs.isNotEmpty) ...[
+                                            const SizedBox(height: 6),
+                                            Text(obs,
+                                                style: const TextStyle(
+                                                    color: PT.text2,
+                                                    fontSize: 12,
+                                                    height: 1.4)),
+                                          ],
+                                        ],
                                       ),
                                     ),
                                   ]),
-                                  if (obs != null && obs.isNotEmpty) ...[
-                                    const SizedBox(height: 6),
-                                    Text(obs,
-                                        style: const TextStyle(
-                                            color: AppTheme.textSecond,
-                                            fontSize: 12,
-                                            height: 1.4)),
-                                  ],
-                                ],
+                                ),
                               ),
-                            ),
-                          ]),
+                            ]),
+                          ),
                         );
                       },
                     ),

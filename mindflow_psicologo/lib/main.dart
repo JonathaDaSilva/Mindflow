@@ -5,13 +5,17 @@ import 'package:mindflow_shared/mindflow_shared.dart';
 import 'screens/splash_screen.dart';
 import 'services/notificacao_local_service.dart';
 import 'services/consulta_monitor_service.dart';
+import 'theme/psicologo_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('pt_BR', null);
   await NotificacaoLocalService.inicializar();
   SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+    ),
   );
   runApp(const MindFlowPsicologoApp());
 }
@@ -20,8 +24,7 @@ class MindFlowPsicologoApp extends StatefulWidget {
   const MindFlowPsicologoApp({super.key});
 
   @override
-  State<MindFlowPsicologoApp> createState() =>
-      _MindFlowPsicologoAppState();
+  State<MindFlowPsicologoApp> createState() => _MindFlowPsicologoAppState();
 }
 
 class _MindFlowPsicologoAppState extends State<MindFlowPsicologoApp>
@@ -43,7 +46,6 @@ class _MindFlowPsicologoAppState extends State<MindFlowPsicologoApp>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      // App voltou ao foreground — verifica imediatamente
       ConsultaMonitorService.verificarAgora();
     }
   }
@@ -52,7 +54,7 @@ class _MindFlowPsicologoAppState extends State<MindFlowPsicologoApp>
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'MindFlow — Psicólogo',
-      theme: AppTheme.dark,
+      theme: PT.theme,
       debugShowCheckedModeBanner: false,
       home: const SplashScreen(),
     );

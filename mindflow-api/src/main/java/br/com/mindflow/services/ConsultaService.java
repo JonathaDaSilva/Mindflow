@@ -106,6 +106,15 @@ public class ConsultaService {
                 return ConsultaResponse.from(salva);
         }
 
+        // Psicólogo define (ou atualiza) o link da sessão online
+        @Transactional
+        public ConsultaResponse atualizarLink(UUID consultaId, String link) {
+                var consulta = consultaRepo.findById(consultaId)
+                                .orElseThrow(ConsultaNaoEncontradaException::new);
+                consulta.setLinkConsulta(link);
+                return ConsultaResponse.from(consultaRepo.save(consulta));
+        }
+
         // Cancelamento com regra das 24h — qualquer lado
         @Transactional
         public ConsultaResponse cancelar(

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mindflow_shared/mindflow_shared.dart';
+import '../theme/psicologo_theme.dart';
 
 class DisponibilidadeScreen extends StatefulWidget {
   const DisponibilidadeScreen({super.key});
@@ -11,16 +12,15 @@ class DisponibilidadeScreen extends StatefulWidget {
 
 class _DisponibilidadeScreenState extends State<DisponibilidadeScreen> {
   final List<_BlocoDisp> _blocos = [];
-  bool _salvando  = false;
+  bool _salvando   = false;
   bool _carregando = true;
-  String? _erro;
 
   static const _dias = [
-    {'valor': 1, 'label': 'Segunda'},
-    {'valor': 2, 'label': 'Terça'},
-    {'valor': 3, 'label': 'Quarta'},
-    {'valor': 4, 'label': 'Quinta'},
-    {'valor': 5, 'label': 'Sexta'},
+    {'valor': 1, 'label': 'Segunda-feira'},
+    {'valor': 2, 'label': 'Terça-feira'},
+    {'valor': 3, 'label': 'Quarta-feira'},
+    {'valor': 4, 'label': 'Quinta-feira'},
+    {'valor': 5, 'label': 'Sexta-feira'},
     {'valor': 6, 'label': 'Sábado'},
     {'valor': 7, 'label': 'Domingo'},
   ];
@@ -39,7 +39,7 @@ class _DisponibilidadeScreenState extends State<DisponibilidadeScreen> {
         setState(() {
           _blocos.clear();
           for (final item in lista) {
-            final d = item as Map<String, dynamic>;
+            final d      = item as Map<String, dynamic>;
             final inicio = d['horaInicio'] as String;
             final fim    = d['horaFim']    as String;
             _blocos.add(_BlocoDisp(
@@ -57,7 +57,6 @@ class _DisponibilidadeScreenState extends State<DisponibilidadeScreen> {
         });
       }
     } catch (_) {
-      // sem agenda ainda — tudo bem
     } finally {
       setState(() => _carregando = false);
     }
@@ -71,133 +70,107 @@ class _DisponibilidadeScreenState extends State<DisponibilidadeScreen> {
         )));
   }
 
-  void _removerBloco(int index) {
-    setState(() => _blocos.removeAt(index));
-  }
+  void _removerBloco(int i) => setState(() => _blocos.removeAt(i));
 
   Future<void> _salvar() async {
     if (_blocos.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Adicione pelo menos um bloco'),
-            backgroundColor: AppTheme.error),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Adicione pelo menos um bloco de horário'),
+        backgroundColor: PT.error,
+      ));
       return;
     }
 
-    // Valida horários
     for (final b in _blocos) {
-      final inicioMin = b.horaInicio.hour * 60 + b.horaInicio.minute;
-      final fimMin    = b.horaFim.hour    * 60 + b.horaFim.minute;
-      if (fimMin <= inicioMin) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Hora fim deve ser depois da hora início'),
-              backgroundColor: AppTheme.error),
-        );
+      final ini = b.horaInicio.hour * 60 + b.horaInicio.minute;
+      final fim = b.horaFim.hour    * 60 + b.horaFim.minute;
+      if (fim <= ini) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Hora fim deve ser após a hora de início'),
+          backgroundColor: PT.error,
+        ));
         return;
       }
     }
 
     setState(() => _salvando = true);
-
     try {
       final body = {
-        'disponibilidades': _blocos.map((b) => {
-          'diaSemana':  b.diaSemana,
-          'horaInicio': '${b.horaInicio.hour.toString().padLeft(2,'0')}:${b.horaInicio.minute.toString().padLeft(2,'0')}',
-          'horaFim':    '${b.horaFim.hour.toString().padLeft(2,'0')}:${b.horaFim.minute.toString().padLeft(2,'0')}',
-        }).toList(),
+        'disponibilidades': _blocos
+            .map((b) => {
+                  'diaSemana':  b.diaSemana,
+                  'horaInicio': _horaStr(b.horaInicio),
+                  'horaFim':    _horaStr(b.horaFim),
+                })
+            .toList(),
       };
-
       final res = await ApiClient.put('/disponibilidades', body);
       if (!mounted) return;
       if (res.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Agenda salva com sucesso! ✅'),
-              backgroundColor: AppTheme.success),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Agenda salva com sucesso!'),
+          backgroundColor: PT.success,
+        ));
       } else {
         throw Exception('Erro ao salvar');
       }
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Erro ao salvar agenda'),
-            backgroundColor: AppTheme.error),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Erro ao salvar agenda'),
+        backgroundColor: PT.error,
+      ));
     } finally {
       if (mounted) setState(() => _salvando = false);
     }
   }
 
-  Future<void> _selecionarHora(
-      int index, bool isInicio) async {
-    final atual = isInicio
-        ? _blocos[index].horaInicio
-        : _blocos[index].horaFim;
+  Future<void> _selecionarHora(int i, bool isInicio) async {
+    final atual  = isInicio ? _blocos[i].horaInicio : _blocos[i].horaFim;
     final picked = await showTimePicker(
       context: context,
       initialTime: atual,
-      builder: (ctx, child) => Theme(
-        data: ThemeData.dark().copyWith(
-          colorScheme: const ColorScheme.dark(
-            primary: AppTheme.secondary,
-            surface: AppTheme.surface,
-          ),
-        ),
-        child: child!,
-      ),
     );
     if (picked != null) {
       setState(() {
-        if (isInicio) _blocos[index].horaInicio = picked;
-        else          _blocos[index].horaFim    = picked;
+        if (isInicio) _blocos[i].horaInicio = picked;
+        else          _blocos[i].horaFim    = picked;
       });
     }
   }
 
   String _nomeDia(int dia) =>
-      _dias.firstWhere((d) => d['valor'] == dia)['label'] as String;
+      (_dias.firstWhere((d) => d['valor'] == dia)['label'] as String);
 
   String _horaStr(TimeOfDay t) =>
-      '${t.hour.toString().padLeft(2,'0')}:${t.minute.toString().padLeft(2,'0')}';
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: PT.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        title: const Text('Disponibilidade'),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppTheme.textPrimary),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Minha disponibilidade',
-            style: TextStyle(
-                color: AppTheme.textPrimary,
-                fontWeight: FontWeight.w600)),
         actions: [
           TextButton(
             onPressed: _salvando ? null : _salvar,
             child: _salvando
                 ? const SizedBox(
-                    width: 18, height: 18,
+                    width: 18,
+                    height: 18,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: AppTheme.secondary))
+                        strokeWidth: 2, color: PT.primary))
                 : const Text('Salvar',
-                    style: TextStyle(
-                        color: AppTheme.secondary,
-                        fontWeight: FontWeight.w600)),
+                    style: TextStyle(fontWeight: FontWeight.w600)),
           ),
         ],
       ),
       body: _carregando
-          ? const Center(
-              child: CircularProgressIndicator(color: AppTheme.secondary))
+          ? const Center(child: CircularProgressIndicator(color: PT.primary))
           : Column(
               children: [
                 Expanded(
@@ -206,90 +179,129 @@ class _DisponibilidadeScreenState extends State<DisponibilidadeScreen> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.calendar_today_rounded,
-                                  color: AppTheme.textSecond, size: 48),
-                              const SizedBox(height: 12),
+                              Container(
+                                width: 64,
+                                height: 64,
+                                decoration: BoxDecoration(
+                                  color: PT.surfaceAlt,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Icon(
+                                    Icons.calendar_today_rounded,
+                                    color: PT.text3,
+                                    size: 28),
+                              ),
+                              const SizedBox(height: 14),
                               const Text(
-                                  'Nenhum horário cadastrado.\nAdicione blocos de disponibilidade.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                      color: AppTheme.textSecond,
-                                      height: 1.5)),
+                                'Nenhum horário cadastrado.\nAdicione blocos de disponibilidade.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                    color: PT.text2, height: 1.5),
+                              ),
                             ],
                           ),
                         )
                       : ListView.builder(
-                          padding: const EdgeInsets.all(24),
+                          padding: const EdgeInsets.all(20),
                           itemCount: _blocos.length,
                           itemBuilder: (_, i) => Container(
                             margin: const EdgeInsets.only(bottom: 12),
-                            decoration: BoxDecoration(
-                              color: AppTheme.surface,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
+                            decoration: PT.card,
                             padding: const EdgeInsets.all(16),
                             child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Dia da semana
+                                // Header do bloco
                                 Row(children: [
-                                  const Icon(Icons.today_rounded,
-                                      color: AppTheme.secondary, size: 18),
-                                  const SizedBox(width: 8),
-                                  const Text('Dia da semana',
-                                      style: TextStyle(
-                                          color: AppTheme.textSecond,
-                                          fontSize: 13)),
+                                  Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: PT.primaryLight,
+                                      borderRadius:
+                                          BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(Icons.today_rounded,
+                                        color: PT.primary, size: 16),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    'Bloco ${i + 1}',
+                                    style: const TextStyle(
+                                        color: PT.text1,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14),
+                                  ),
                                   const Spacer(),
                                   IconButton(
                                     icon: const Icon(Icons.delete_outline,
-                                        color: AppTheme.error, size: 20),
+                                        color: PT.error, size: 20),
                                     onPressed: () => _removerBloco(i),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
                                   ),
                                 ]),
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 14),
+
                                 // Dropdown dia
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 16),
+                                      horizontal: 14),
                                   decoration: BoxDecoration(
-                                    color: AppTheme.surfaceAlt,
-                                    borderRadius: BorderRadius.circular(12),
+                                    color: PT.surfaceAlt,
+                                    borderRadius:
+                                        BorderRadius.circular(10),
+                                    border: Border.all(
+                                        color: PT.border, width: 1),
                                   ),
                                   child: DropdownButton<int>(
                                     value: _blocos[i].diaSemana,
                                     isExpanded: true,
                                     underline: const SizedBox(),
-                                    dropdownColor: AppTheme.surfaceAlt,
                                     style: const TextStyle(
-                                        color: AppTheme.textPrimary),
-                                    items: _dias.map((d) =>
-                                      DropdownMenuItem<int>(
-                                        value: d['valor'] as int,
-                                        child: Text(d['label'] as String),
-                                      )).toList(),
+                                        color: PT.text1,
+                                        fontSize: 14,
+                                        fontFamily: 'Inter'),
+                                    dropdownColor: PT.surface,
+                                    items: _dias
+                                        .map((d) => DropdownMenuItem<int>(
+                                              value: d['valor'] as int,
+                                              child: Text(
+                                                  d['label'] as String),
+                                            ))
+                                        .toList(),
                                     onChanged: (v) => setState(
                                         () => _blocos[i].diaSemana = v!),
                                   ),
                                 ),
                                 const SizedBox(height: 12),
+
                                 // Horários
                                 Row(children: [
                                   Expanded(
                                     child: _horaBotao(
                                       label: 'Início',
-                                      hora:  _horaStr(_blocos[i].horaInicio),
-                                      onTap: () => _selecionarHora(i, true),
+                                      hora:
+                                          _horaStr(_blocos[i].horaInicio),
+                                      onTap: () =>
+                                          _selecionarHora(i, true),
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
-                                  const Icon(Icons.arrow_forward,
-                                      color: AppTheme.textSecond, size: 16),
-                                  const SizedBox(width: 12),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10),
+                                    child: Icon(
+                                      Icons.arrow_forward_rounded,
+                                      color: PT.text3,
+                                      size: 16,
+                                    ),
+                                  ),
                                   Expanded(
                                     child: _horaBotao(
-                                      label: 'Fim',
-                                      hora:  _horaStr(_blocos[i].horaFim),
-                                      onTap: () => _selecionarHora(i, false),
+                                      label: 'Término',
+                                      hora: _horaStr(_blocos[i].horaFim),
+                                      onTap: () =>
+                                          _selecionarHora(i, false),
                                     ),
                                   ),
                                 ]),
@@ -300,20 +312,15 @@ class _DisponibilidadeScreenState extends State<DisponibilidadeScreen> {
                 ),
 
                 // Botão adicionar
-                Padding(
-                  padding: const EdgeInsets.all(24),
+                Container(
+                  color: PT.background,
+                  padding: const EdgeInsets.all(20),
                   child: OutlinedButton.icon(
                     onPressed: _adicionarBloco,
-                    icon: const Icon(Icons.add_rounded,
-                        color: AppTheme.secondary),
-                    label: const Text('Adicionar bloco de horário',
-                        style: TextStyle(color: AppTheme.secondary)),
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text('Adicionar bloco de horário'),
                     style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 52),
-                      side: BorderSide(
-                          color: AppTheme.secondary.withOpacity(0.5)),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16)),
+                      minimumSize: const Size(double.infinity, 50),
                     ),
                   ),
                 ),
@@ -332,19 +339,19 @@ class _DisponibilidadeScreenState extends State<DisponibilidadeScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: AppTheme.secondary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
+            color: PT.primaryLight,
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(
-                color: AppTheme.secondary.withOpacity(0.3)),
+                color: PT.primary.withOpacity(0.2), width: 1),
           ),
           child: Column(children: [
             Text(label,
                 style: const TextStyle(
-                    color: AppTheme.textSecond, fontSize: 11)),
+                    color: PT.text2, fontSize: 11)),
             const SizedBox(height: 4),
             Text(hora,
                 style: const TextStyle(
-                    color: AppTheme.secondary,
+                    color: PT.primary,
                     fontSize: 18,
                     fontWeight: FontWeight.w700)),
           ]),

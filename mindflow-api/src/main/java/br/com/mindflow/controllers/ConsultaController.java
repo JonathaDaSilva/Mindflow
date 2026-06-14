@@ -67,6 +67,13 @@ public class ConsultaController {
         return ResponseEntity.ok(Map.of("total", total));
     }
 
+    // Psicólogo define o link da sessão online (Meet, Zoom, etc.)
+    @PatchMapping("/{id}/link")
+    public ConsultaResponse atualizarLink(@PathVariable UUID id,
+            @RequestBody @Valid ConsultaLinkRequest req) {
+        return consultaService.atualizarLink(id, req.link());
+    }
+
     // RF16 — paciente avalia (nota 1-5 + comentário) a consulta já concluída
     @PostMapping("/{id}/avaliacao")
     @ResponseStatus(HttpStatus.CREATED)

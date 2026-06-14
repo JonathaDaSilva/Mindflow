@@ -38,6 +38,10 @@ public class Consulta {
 
     @Column(name = "motivo_cancelamento")
     private String motivoCancelamento;
+
+    // Link da sessão online (Meet, Zoom, etc.) — preenchido pelo psicólogo
+    @Column(name = "link_consulta", length = 500)
+    private String linkConsulta;
     
     @CreationTimestamp
     private LocalDateTime criadoEm;

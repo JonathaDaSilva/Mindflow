@@ -15,6 +15,7 @@ public record ConsultaResponse(
     String formaPagamento,
     String observacao,
     String motivoCancelamento,
+    String linkConsulta,
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     LocalDateTime criadoEm
 ) {
@@ -29,6 +30,7 @@ public record ConsultaResponse(
                 : c.getFormaPagamento().name(),
             c.getObservacao(),
             c.getMotivoCancelamento(),
+            c.getLinkConsulta(),
             c.getCriadoEm()
         );
     }
