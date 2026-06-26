@@ -5,10 +5,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import br.com.mindflow.entity.Usuario;
+import br.com.mindflow.entity.enums.RegimeTrabalho;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import java.math.BigDecimal;
 import java.util.List;
 import br.com.mindflow.dto.psicologo.*;
 import br.com.mindflow.services.PsicologoService;
@@ -23,10 +26,16 @@ public class PsicologoController {
 
     private final PsicologoService psicologoService;
 
-    // GET /psicologos — paciente lista todos os psicólogos ativos
+    // GET /psicologos — paciente lista psicólogos ativos.
+    // RF05 — aceita filtros opcionais: especialidade (busca parcial),
+    // regimeTrabalho (PRESENCIAL|REMOTO|HIBRIDO) e precoMax (valor da sessão).
+    // Sem parâmetros, comportamento idêntico ao anterior (lista completa).
     @GetMapping
-    public List<PsicologoPerfilResponse> listar() {
-        return psicologoService.listarTodos();
+    public List<PsicologoPerfilResponse> listar(
+            @RequestParam(required = false) String especialidade,
+            @RequestParam(required = false) RegimeTrabalho regimeTrabalho,
+            @RequestParam(required = false) BigDecimal precoMax) {
+        return psicologoService.buscar(especialidade, regimeTrabalho, precoMax);
     }
 
     // GET /psicologos/emergencia — paciente busca psicólogos que aceitam emergências

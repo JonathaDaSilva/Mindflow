@@ -17,6 +17,11 @@ public interface ConsultaRepository extends JpaRepository<Consulta, UUID> {
     List<Consulta> findByPsicologoIdAndStatus(
         UUID psicologoId, StatusConsulta status);
 
+    // RF15 — lembretes diários: consultas confirmadas que ocorrem dentro
+    // de uma janela de data/hora (usado para varrer "as consultas de hoje").
+    List<Consulta> findByDataHoraBetweenAndStatus(
+        LocalDateTime inicio, LocalDateTime fim, StatusConsulta status);
+
     @Query("""
         SELECT COUNT(c) > 0 FROM Consulta c
         WHERE c.psicologo.id = :psicologoId

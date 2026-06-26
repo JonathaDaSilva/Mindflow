@@ -4,6 +4,7 @@ import br.com.mindflow.dto.disponibilidade.DisponibilidadeRequest;
 import br.com.mindflow.dto.disponibilidade.DisponibilidadeResponse;
 import br.com.mindflow.dto.disponibilidade.*;
 import br.com.mindflow.entity.Disponibilidade;
+import br.com.mindflow.repositories.BloqueioAgendaRepository;
 import br.com.mindflow.repositories.ConsultaRepository;
 import br.com.mindflow.repositories.DisponibilidadeRepository;
 import br.com.mindflow.repositories.PsicologoPerfilRepository;
@@ -31,6 +32,7 @@ public class DisponibilidadeService {
     private final ConsultaRepository consultaRepo;
     private final PsicologoPerfilRepository psicologoPerfilRepo;
     private final UsuarioRepository usuarioRepo;
+    private final BloqueioAgendaRepository bloqueioAgendaRepo;
 
     // ── Salvar / Listar ───────────────────────────────────────────────────────
 
@@ -84,6 +86,12 @@ public class DisponibilidadeService {
         int diaSemana = data.getDayOfWeek().getValue(); // 1=SEG … 7=DOM
 
         log.debug("[Slots] psicologoId={} data={} diaSemana(ISO)={}", psicologoId, data, diaSemana);
+
+        // RF18 — dia bloqueado pelo psicólogo (ex.: férias) nunca tem slots livres
+        if (bloqueioAgendaRepo.existsByPsicologoIdAndData(psicologoId, data)) {
+            log.debug("[Slots] data {} bloqueada pelo psicólogo — retornando vazio", data);
+            return List.of();
+        }
 
         var todasDisp = disponibilidadeRepo.findByPsicologoId(psicologoId);
         log.debug("[Slots] total de disponibilidades cadastradas: {}", todasDisp.size());

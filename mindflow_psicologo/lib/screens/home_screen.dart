@@ -8,6 +8,7 @@ import 'consultas_screen.dart';
 import 'agenda_screen.dart';
 import 'perfil_screen.dart';
 import 'disponibilidade_screen.dart';
+import 'bloqueios_agenda_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -270,6 +271,18 @@ class _DashboardTab extends StatelessWidget {
                   iconBg: PT.purpleLight,
                   iconColor: PT.purple,
                   onTap: () => onTabChange(3),
+                ),
+                _QuickCard(
+                  icon: Icons.event_busy_rounded,
+                  label: 'Bloqueios',
+                  sub: 'Férias e feriados',
+                  iconBg: PT.errorLight,
+                  iconColor: PT.error,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const BloqueiosAgendaScreen()),
+                  ),
                 ),
               ]),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

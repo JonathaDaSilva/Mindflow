@@ -28,10 +28,27 @@ class _PsicologosScreenState extends State<PsicologosScreen> {
   bool    _loading = true;
   String? _erro;
 
+  // RF05 — filtros de busca (regime de trabalho e preço máximo são
+  // aplicados no backend via query params; texto livre filtra localmente
+  // a lista já carregada, para resposta instantânea ao digitar).
+  String?      _regimeFiltro; // null | 'PRESENCIAL' | 'REMOTO' | 'HIBRIDO'
+  double?      _precoMaxFiltro;
+
   final Set<String> _carregandoSlot = {};
 
-  String get _endpoint =>
+  String get _endpointBase =>
       widget.emergenciaOnly ? '/psicologos/emergencia' : '/psicologos';
+
+  String get _endpoint {
+    final params = <String, String>{};
+    if (!widget.emergenciaOnly) {
+      if (_regimeFiltro != null) params['regimeTrabalho'] = _regimeFiltro!;
+      if (_precoMaxFiltro != null) params['precoMax'] = _precoMaxFiltro!.toStringAsFixed(2);
+    }
+    if (params.isEmpty) return _endpointBase;
+    final query = params.entries.map((e) => '${e.key}=${e.value}').join('&');
+    return '$_endpointBase?$query';
+  }
 
   @override
   void initState() {
@@ -46,7 +63,8 @@ class _PsicologosScreenState extends State<PsicologosScreen> {
       final res = await ApiClient.get(_endpoint);
       if (res.statusCode == 200) {
         final lista = (jsonDecode(res.body) as List).cast<Map<String, dynamic>>();
-        setState(() { _todos = lista; _filtrados = lista; });
+        setState(() { _todos = lista; });
+        _filtrar();
       } else {
         setState(() => _erro = 'Erro ao carregar profissionais');
       }
@@ -68,6 +86,54 @@ class _PsicologosScreenState extends State<PsicologosScreen> {
               return nome.contains(q) || espec.contains(q);
             }).toList();
     });
+  }
+
+  void _aplicarFiltroRegime(String? regime) {
+    setState(() => _regimeFiltro = regime);
+    _carregar();
+  }
+
+  Future<void> _abrirFiltroPreco() async {
+    double valor = _precoMaxFiltro ?? 300;
+    // 'limpar' e 'aplicar' são ações explícitas do usuário; fechar o
+    // diálogo tocando fora dele (barrier dismiss) não altera o filtro atual.
+    final acao = await showDialog<String>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: const Text('Preço máximo da sessão'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('R\$ ${valor.toStringAsFixed(0)}',
+                  style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.w700, color: PcT.primary)),
+              Slider(
+                value: valor,
+                min: 50,
+                max: 600,
+                divisions: 55,
+                label: 'R\$ ${valor.toStringAsFixed(0)}',
+                onChanged: (v) => setLocal(() => valor = v),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, 'limpar'),
+              child: const Text('Limpar filtro'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, 'aplicar'),
+              child: const Text('Aplicar'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || acao == null) return;
+    setState(() => _precoMaxFiltro = acao == 'limpar' ? null : valor);
+    _carregar();
   }
 
   Future<void> _verHorarios(Map<String, dynamic> psicologo) async {
@@ -107,6 +173,33 @@ class _PsicologosScreenState extends State<PsicologosScreen> {
       case 'HIBRIDO':    return 'Híbrido';
       default:           return r ?? '';
     }
+  }
+
+  Widget _filtroChip(String label, bool selecionado, VoidCallback onTap,
+      {IconData? icon}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: selecionado ? PcT.primary : PcT.surfaceAlt,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+              color: selecionado ? PcT.primary : PcT.border, width: 1),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          if (icon != null) ...[
+            Icon(icon, size: 14, color: selecionado ? Colors.white : PcT.text2),
+            const SizedBox(width: 4),
+          ],
+          Text(label,
+              style: TextStyle(
+                  color: selecionado ? Colors.white : PcT.text2,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600)),
+        ]),
+      ),
+    );
   }
 
   @override
@@ -186,6 +279,37 @@ class _PsicologosScreenState extends State<PsicologosScreen> {
               ),
             ),
           ),
+
+          // RF05 — Filtros (regime de trabalho + preço máximo da sessão)
+          if (!isEmergencia)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(children: [
+                  _filtroChip('Todos', _regimeFiltro == null,
+                      () => _aplicarFiltroRegime(null)),
+                  const SizedBox(width: 8),
+                  _filtroChip('Presencial', _regimeFiltro == 'PRESENCIAL',
+                      () => _aplicarFiltroRegime('PRESENCIAL')),
+                  const SizedBox(width: 8),
+                  _filtroChip('Remoto', _regimeFiltro == 'REMOTO',
+                      () => _aplicarFiltroRegime('REMOTO')),
+                  const SizedBox(width: 8),
+                  _filtroChip('Híbrido', _regimeFiltro == 'HIBRIDO',
+                      () => _aplicarFiltroRegime('HIBRIDO')),
+                  const SizedBox(width: 8),
+                  _filtroChip(
+                    _precoMaxFiltro == null
+                        ? 'Preço'
+                        : 'Até R\$ ${_precoMaxFiltro!.toStringAsFixed(0)}',
+                    _precoMaxFiltro != null,
+                    _abrirFiltroPreco,
+                    icon: Icons.attach_money_rounded,
+                  ),
+                ]),
+              ),
+            ),
 
           // Contador
           if (!_loading && _erro == null)

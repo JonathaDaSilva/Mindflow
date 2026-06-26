@@ -1,11 +1,13 @@
 package br.com.mindflow.services;
 
 import br.com.mindflow.entity.Endereco;
+import br.com.mindflow.entity.enums.RegimeTrabalho;
 import br.com.mindflow.exceptions.PerfilNaoEncontradoException;
 import br.com.mindflow.repositories.PsicologoPerfilRepository;
 import br.com.mindflow.repositories.UsuarioRepository;
 import jakarta.transaction.Transactional;
 import br.com.mindflow.dto.psicologo.*;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,27 @@ public class PsicologoService {
     public List<PsicologoPerfilResponse> listarTodos() {
         return perfilRepo.findByAtivoTrue()
             .stream()
+            .map(PsicologoPerfilResponse::from)
+            .toList();
+    }
+
+    // RF05 — paciente busca psicólogos com filtro opcional por
+    // especialidade (contains, case-insensitive), regime de trabalho
+    // e preço máximo da sessão. Parâmetros nulos são ignorados (sem
+    // filtro nesse campo).
+    public List<PsicologoPerfilResponse> buscar(
+            String especialidade, RegimeTrabalho regimeTrabalho, BigDecimal precoMax) {
+
+        String termo = especialidade == null ? null : especialidade.trim().toLowerCase();
+
+        return perfilRepo.findByAtivoTrue()
+            .stream()
+            .filter(p -> termo == null || termo.isBlank()
+                || (p.getEspecialidade() != null
+                    && p.getEspecialidade().toLowerCase().contains(termo)))
+            .filter(p -> regimeTrabalho == null || regimeTrabalho == p.getRegimeTrabalho())
+            .filter(p -> precoMax == null
+                || (p.getValorSessao() != null && p.getValorSessao().compareTo(precoMax) <= 0))
             .map(PsicologoPerfilResponse::from)
             .toList();
     }
